@@ -40,7 +40,7 @@ export default function Overview() {
 
   return (
     <>
-      <PageHeader title="Lean orchestration" sub={`Multi-agent work in ${project.name}, routed to the cheapest model that can do each step.`} />
+      <PageHeader title="Orchestrate every agent" sub={`Multi-agent work in ${project.name}, routed to the cheapest model that can do each step.`} />
       {providers && !providers.some((p) => p.signedIn && p.granted) && (
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
           <span>Connect {agyInstalled ? "Claude Code or Antigravity" : "Claude Code"} so agents can run in this project.</span>
@@ -108,7 +108,7 @@ export default function Overview() {
         <div className="grid min-w-0 content-start gap-6">
           <section className="rounded-2xl border bg-card p-5 shadow-xs">
             <div className="mb-2 flex items-center justify-between"><h3 className="font-semibold">Model router</h3><span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">Auto (lean)</span></div>
-            {[...new Set(["haiku", "sonnet", "opus", ...tasks.map((t) => t.model || "sonnet")])].map((id) => {
+            {[...new Set(["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", ...tasks.map((t) => t.model || "default")])].map((id) => {
               const m = modelInfo(id, models), c = tasks.filter((t) => (t.model || "sonnet") === id).length;
               return (
                 <div key={id} className="flex items-center gap-3 border-t py-3 first-of-type:border-0">

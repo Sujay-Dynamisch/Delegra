@@ -3,12 +3,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
-  BookOpen, Bot, ChartNoAxesColumn, FolderGit2, History, House, ListChecks, MessageSquare, Moon, Plus, Settings, Sun, Workflow, Zap, Layers,
+  BookOpen, Bot, ChartNoAxesColumn, FolderGit2, History, House, ListChecks, MessageSquare, Moon, Plus, Settings, Sun, Workflow, Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useApp } from "./project-context";
 import { ConnectClaude } from "./connect-claude";
+import { DelegraIcon, DelegraLogo } from "./brand";
 
 const NAV = [
   { href: "/", label: "Overview", icon: House },
@@ -31,17 +32,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const live = (providers || []).filter((p) => p.signedIn && p.granted);
   const connected = live.length > 0;
   // The workflow editor uses the full screen.
-  const bare = /^\/workflows\/[^/]+$/.test(path);
+  const bare = /^\/workflows\/[^/]+$|^\/chat$/.test(path);
 
   return (
     <div className="grid min-h-dvh lg:grid-cols-[256px_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-1 overflow-y-auto border-r bg-sidebar px-3 py-4 lg:flex">
-        <Link href="/" className="mb-5 flex items-center gap-2.5 px-2">
-          <div className="grid size-9 place-items-center rounded-xl bg-foreground text-background"><Layers className="size-5" /></div>
-          <div className="leading-tight"><div className="font-semibold">Lean</div><div className="text-xs text-muted-foreground">Orchestrator</div></div>
-        </Link>
+      <aside className="no-scrollbar sticky top-0 hidden h-dvh flex-col gap-1 overflow-y-auto border-r bg-sidebar px-3 py-4 lg:flex">
+        <Link href="/" aria-label="Delegra home" className="mb-5 px-2"><DelegraLogo /></Link>
         {NAV.map(({ href, label, icon: Icon }) => (
-          <Link key={href} href={href} className={cn("flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-accent hover:text-foreground", active(href) && "bg-background text-foreground shadow-xs ring-1 ring-border")}>
+          <Link key={href} href={href} className={cn("flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-accent hover:text-foreground", active(href) && "bg-accent text-accent-foreground")}>
             <Icon className="size-[18px]" />{label}
           </Link>
         ))}
@@ -64,7 +62,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="flex min-w-0 flex-col">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b bg-background/85 px-4 py-3 backdrop-blur md:px-7">
-          <nav className="flex gap-1 overflow-x-auto lg:hidden">
+          <Link href="/" aria-label="Delegra home" className="lg:hidden"><DelegraIcon className="size-8" /></Link>
+          <nav className="no-scrollbar flex gap-1 overflow-x-auto lg:hidden">
             {NAV.map(({ href, icon: Icon, label }) => (
               <Link key={href} href={href} aria-label={label} className={cn("grid size-9 shrink-0 place-items-center rounded-lg", active(href) ? "bg-accent" : "text-muted-foreground")}><Icon className="size-[18px]" /></Link>
             ))}

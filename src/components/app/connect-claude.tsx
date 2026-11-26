@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { CheckCircle2, ExternalLink, FolderGit2, Layers, Loader2, ShieldCheck, Sparkles, Terminal } from "lucide-react";
+import { CheckCircle2, ExternalLink, FolderGit2, Loader2, ShieldCheck, Sparkles, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -9,6 +9,7 @@ import type { ProviderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ProviderMark } from "./pickers";
 import { useApp } from "./project-context";
+import { DelegraIcon } from "./brand";
 
 const SCOPES = [
   { icon: FolderGit2, text: "Run agents in the project folders you connect" },
@@ -74,7 +75,7 @@ export function ConnectClaude() {
     <Dialog open={connectOpen} onOpenChange={(o) => setConnectOpen(o)}>
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
         <div className="flex items-center justify-center gap-3 border-b bg-muted/40 px-6 py-6">
-          <div className="grid size-12 place-items-center rounded-2xl bg-foreground text-background shadow-sm"><Layers className="size-6" /></div>
+          <DelegraIcon className="size-12 rounded-2xl" />
           <div className="h-px w-8 border-t border-dashed border-muted-foreground/50" />
           <ProviderMark provider="claude" className="size-11 rounded-2xl text-lg" />
           {agyInstalled && <ProviderMark provider="antigravity" className="size-11 rounded-2xl [&_svg]:size-5" />}
@@ -82,7 +83,7 @@ export function ConnectClaude() {
         <div className="grid gap-5 px-6 py-6">
           <div className="text-center">
             <DialogTitle className="text-lg">{agyInstalled ? "Connect your AI plans" : "Connect your Claude plan"}</DialogTitle>
-            <DialogDescription className="mt-1">{agyInstalled ? "Lean Orchestrator runs agents through the CLIs signed in on this computer. Connect one or both; cheap steps can go to Gemini, hard ones to Claude." : "Lean Orchestrator runs agents through Claude Code, signed in on this computer."}</DialogDescription>
+            <DialogDescription className="mt-1">{agyInstalled ? "Delegra runs agents through the CLIs signed in on this computer. Connect one or both; cheap steps can go to Gemini, hard ones to Claude." : "Delegra runs agents through Claude Code, signed in on this computer."}</DialogDescription>
           </div>
           <ul className="grid gap-2.5 text-sm">
             {SCOPES.map(({ icon: Icon, text }) => <li key={text} className="flex items-start gap-3"><Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />{text}</li>)}

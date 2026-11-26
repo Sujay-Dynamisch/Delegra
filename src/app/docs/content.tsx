@@ -11,8 +11,8 @@ export type Section = { id: string; title: string; group: string; blocks: Block[
 
 export const SECTIONS: Section[] = [
   /* ---------------- Getting started ---------------- */
-  { id: "overview", group: "Getting started", title: "What Lean Orchestrator does", blocks: [
-    { p: "Lean Orchestrator runs AI coding agents inside the project folders on your computer, using the AI plans you already have. You give agents tasks, chain them into workflows, and watch them work live." },
+  { id: "overview", group: "Getting started", title: "What Delegra does", blocks: [
+    { p: "Delegra runs AI coding agents inside the project folders on your computer, using the AI plans you already have. You give agents tasks, chain them into workflows, and watch them work live." },
     { list: [
       "Agents run through Claude Code (and Antigravity, if it is installed) on this computer, with your own sign-in. No API key is needed.",
       "Each step can use a different model: cheap and fast for simple work, deeper models only where they are needed. That keeps token use low.",

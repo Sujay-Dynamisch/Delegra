@@ -71,7 +71,7 @@ export default function Docs() {
       </aside>
       <article className="max-w-3xl">
         <header className="mb-10">
-          <h1 className="text-[32px] leading-tight font-semibold tracking-tight">Lean Orchestrator documentation</h1>
+          <h1 className="text-[32px] leading-tight font-semibold tracking-tight">Delegra documentation</h1>
           <p className="mt-2 text-muted-foreground">Everything you need to set up, connect your AI plans, and run agents and workflows in your projects.</p>
         </header>
         {groups.map((g) => (

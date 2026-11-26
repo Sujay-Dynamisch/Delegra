@@ -11,7 +11,7 @@ import { ago, api, db, useList } from "@/lib/client";
 import type { Agent, Run, Workflow as Wf } from "@/lib/types";
 
 function starter(projectId: string, agents: Agent[]): Omit<Wf, "id"> {
-  const pick = (m: string) => agents.find((a) => a.model === m);
+  const pick = (m: string) => agents.find((a) => a.model.includes(m));
   const plan = pick("haiku"), build = pick("sonnet"), review = pick("opus") || pick("sonnet");
   return {
     projectId, name: "Untitled workflow", description: "", edges: [
@@ -19,9 +19,9 @@ function starter(projectId: string, agents: Agent[]): Omit<Wf, "id"> {
     ],
     nodes: [
       { id: "trigger", kind: "trigger", position: { x: 0, y: 120 }, data: { label: "Run manually" } },
-      { id: "plan", kind: "agent", position: { x: 220, y: 120 }, data: { label: "Plan", agentId: plan?.id, model: "haiku", instruction: "Read only what you need and write a short step-by-step plan." } },
-      { id: "build", kind: "agent", position: { x: 440, y: 120 }, data: { label: "Implement", agentId: build?.id, model: "sonnet", instruction: "Implement the plan. List changed files and checks you ran.", write: true } },
-      { id: "review", kind: "agent", position: { x: 660, y: 120 }, data: { label: "Review", agentId: review?.id, model: review?.model || "opus", instruction: "Review the change for bugs and regressions. Reply PASS or list concrete defects." } },
+      { id: "plan", kind: "agent", position: { x: 220, y: 120 }, data: { label: "Plan", agentId: plan?.id, model: plan?.model || "claude-haiku-5-5", instruction: "Read only what you need and write a short step-by-step plan." } },
+      { id: "build", kind: "agent", position: { x: 440, y: 120 }, data: { label: "Implement", agentId: build?.id, model: build?.model || "claude-sonnet-5-5", instruction: "Implement the plan. List changed files and checks you ran.", write: true } },
+      { id: "review", kind: "agent", position: { x: 660, y: 120 }, data: { label: "Review", agentId: review?.id, model: review?.model || "claude-opus-5-5", instruction: "Review the change for bugs and regressions. Reply PASS or list concrete defects." } },
     ],
   };
 }

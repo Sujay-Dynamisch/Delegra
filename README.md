@@ -1,4 +1,6 @@
-# Lean Orchestrator
+# Delegra
+
+**Orchestrate every agent.**
 
 A local dashboard that orchestrates **Claude Code agents across any project on your computer**, using the Claude plan you are already signed in to.
 
