@@ -37,7 +37,7 @@ export function runTask(id: string) {
   let tools = 0;
   const patch = (p: Partial<Task>) => store.update<Task>("tasks", id, p);
   const proc = runAgent({
-    prompt: `${brief(agent)}\n\nTask:\n${task.prompt}`, cwd: project.path, model: task.model, permissionMode: project.permissionMode,
+    prompt: `${brief(agent)}\n\nTask:\n${task.prompt}`, cwd: project.path, model: task.model, effort: task.effort || agent?.effort, permissionMode: project.permissionMode,
     onEvent: (e) => {
       if (e.kind === "text") updates.push({ at: now(), text: e.text.slice(0, 300), kind: "text" });
       else { tools++; updates.push({ at: now(), text: e.summary, kind: "tool" }); if (e.file) files.add(e.file); }
@@ -109,7 +109,7 @@ export function runWorkflow(id: string, trigger: Run["trigger"] = "manual") {
         (input ? `\nInput from the previous step:\n${input.slice(0, 6000)}\n` : "") +
         `\nYour step:\n${ready.data.instruction || ready.data.label}\n\nReply in the shortest complete form. If you lack information, say UNKNOWN and what you need.`;
       try {
-        const proc = runAgent({ prompt, cwd: project.path, model: ready.data.model || agent?.model || "sonnet", permissionMode: ready.data.write ? project.permissionMode : "plan" });
+        const proc = runAgent({ prompt, cwd: project.path, model: ready.data.model || agent?.model || "sonnet", effort: ready.data.effort || agent?.effort, permissionMode: ready.data.write ? project.permissionMode : "plan" });
         current = proc;
         const r = await proc.done;
         tokens += r.tokens || 0; cost += r.costUsd || 0;

@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useApp } from "@/components/app/project-context";
 import { Empty, Field, ModelTag, PageHeader, StatusPill } from "@/components/app/bits";
-import { AgentPicker, ModelPicker } from "@/components/app/pickers";
+import { AgentPicker, EffortPicker, ModelPicker } from "@/components/app/pickers";
 import { ago, api, db, dur, fmtTokens, useList } from "@/lib/client";
-import type { Agent, Model, Task } from "@/lib/types";
+import type { Agent, Effort, Model, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const FILTERS = [["all", "All"], ["working", "Working"], ["queued", "Queued"], ["blocked", "Blocked"], ["done", "Completed"]] as const;
@@ -24,8 +24,8 @@ function TasksPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
   const [q, setQ] = useState("");
   const [open, setOpen] = useState<string | null>(params.get("open"));
-  const [form, setForm] = useState<{ title: string; prompt: string; model: Model; agentId: string } | null>(params.get("new") ? { title: "", prompt: "", model: "sonnet", agentId: "" } : null);
-  useEffect(() => { if (params.get("new")) setForm({ title: "", prompt: "", model: "sonnet", agentId: "" }); }, [params]);
+  const [form, setForm] = useState<{ title: string; prompt: string; model: Model; agentId: string; effort?: Effort } | null>(params.get("new") ? { title: "", prompt: "", model: "default", agentId: "" } : null);
+  useEffect(() => { if (params.get("new")) setForm({ title: "", prompt: "", model: "default", agentId: "" }); }, [params]);
 
   if (!project) return <div className="rounded-2xl border bg-card"><Empty icon={ListChecks} title="Pick or connect a project first." /></div>;
   const count = (f: string) => (f === "all" ? tasks.length : tasks.filter((t) => t.status === f).length);
@@ -45,7 +45,7 @@ function TasksPage() {
   return (
     <>
       <PageHeader title="Tasks" sub="Each task is one AI agent (Claude Code or Antigravity) working in this project.">
-        {!form && <Button onClick={() => setForm({ title: "", prompt: "", model: "sonnet", agentId: "" })}><Plus />New task</Button>}
+        {!form && <Button onClick={() => setForm({ title: "", prompt: "", model: "default", agentId: "" })}><Plus />New task</Button>}
       </PageHeader>
       {form && (
         <section className="mb-6 grid gap-4 rounded-2xl border bg-card p-5 shadow-xs">
@@ -58,6 +58,7 @@ function TasksPage() {
             <Field label="Model">
               <ModelPicker value={agents.find((a) => a.id === form.agentId)?.model || form.model} disabled={!!form.agentId} onChange={(model) => setForm({ ...form, model })} />
             </Field>
+            <Field label="Effort" hint="Higher effort thinks longer and uses more tokens" className="md:col-span-3"><EffortPicker value={form.effort} onChange={(effort) => setForm({ ...form, effort })} /></Field>
             <Field label="Instructions" className="md:col-span-3"><Textarea value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} rows={4} placeholder="What the agent should do, which files it owns, and how to check it worked." /></Field>
           </div>
           <div className="flex flex-wrap gap-2">

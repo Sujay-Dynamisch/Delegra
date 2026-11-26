@@ -1,6 +1,6 @@
 import "server-only";
 import { spawn, execFile } from "node:child_process";
-import type { PermissionMode } from "@/lib/types";
+import type { Effort, PermissionMode } from "@/lib/types";
 import type { ClaudeEvent, ClaudeResult } from "./claude";
 
 /**
@@ -17,10 +17,11 @@ export function agyCli(args: string[], timeout = 30000): Promise<string> {
   );
 }
 
-export function runAgy(opts: { prompt: string; cwd: string; model: string; permissionMode?: PermissionMode; onEvent?: (e: ClaudeEvent) => void }) {
+export function runAgy(opts: { prompt: string; cwd: string; model: string; effort?: Effort; permissionMode?: PermissionMode; onEvent?: (e: ClaudeEvent) => void }) {
   const mode = opts.permissionMode || "acceptEdits";
   const args = ["--input-format", "stream-json", "--output-format", "stream-json", "--mode", MODE[mode], "--model", opts.model, "-p="];
   if (mode === "bypassPermissions") args.push("--dangerously-skip-permissions");
+  if (opts.effort) args.push("--effort", opts.effort);
   const child = spawn("agy", args, { cwd: opts.cwd, shell: WIN, windowsHide: true });
   let buf = "", stderr = "", stopped = false, sessionId: string | null = null, text = "";
   let result: Record<string, any> | null = null; // eslint-disable-line @typescript-eslint/no-explicit-any

@@ -20,7 +20,7 @@ function ChatPage() {
   const { project } = useApp();
   const agents = useList<Agent>("agents").rows || [];
   const [agentId, setAgentId] = useState(params.get("agent") || "");
-  const [model, setModel] = useState<Model>("sonnet");
+  const [model, setModel] = useState<Model>("default");
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState<AbortController | null>(null);

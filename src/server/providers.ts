@@ -1,14 +1,19 @@
 import "server-only";
-import type { ModelInfo, PermissionMode, ProviderId, ProviderStatus } from "@/lib/types";
+import type { Effort, ModelInfo, PermissionMode, ProviderId, ProviderStatus } from "@/lib/types";
 import { claudeStatus, runClaude, type ClaudeEvent } from "./claude";
 import { agyCli, runAgy } from "./agy";
 import { store } from "./store";
 
-/** Claude Code accepts these aliases; they track the latest model of each family on the user's plan. */
-const CLAUDE_MODELS: ModelInfo[] = [
-  { id: "haiku", label: "Claude Haiku", provider: "claude", tier: "fast", note: "Research, checks, simple edits" },
-  { id: "sonnet", label: "Claude Sonnet", provider: "claude", tier: "balanced", note: "Features, fixes, reviews" },
-  { id: "opus", label: "Claude Opus", provider: "claude", tier: "deep", note: "Architecture, risky changes, final review" },
+/** Claude Code models, as in its own /model picker. Full names pin a version; aliases (hidden) track the latest. */
+export const CLAUDE_MODELS: ModelInfo[] = [
+  { id: "default", label: "Default (recommended)", sub: "Your plan's recommended model", provider: "claude", tier: "balanced", note: "Best for everyday, complex tasks" },
+  { id: "claude-opus-5-5", label: "Opus 5.5", provider: "claude", tier: "deep", note: "For complex work and everyday tasks" },
+  { id: "claude-sonnet-5-5", label: "Sonnet 5.5", provider: "claude", tier: "balanced", note: "Most efficient for simpler tasks" },
+  { id: "claude-fable-5-2", label: "Fable 5.2", provider: "claude", tier: "deep", note: "For your toughest challenges" },
+  { id: "claude-haiku-5-5", label: "Haiku 5.5", provider: "claude", tier: "fast", note: "Fastest for quick answers" },
+  { id: "opus", label: "Opus (latest)", provider: "claude", tier: "deep", note: "Always the newest Opus", hidden: true },
+  { id: "sonnet", label: "Sonnet (latest)", provider: "claude", tier: "balanced", note: "Always the newest Sonnet", hidden: true },
+  { id: "haiku", label: "Haiku (latest)", provider: "claude", tier: "fast", note: "Always the newest Haiku", hidden: true },
 ];
 export const providerOf = (model: string): ProviderId => (model.startsWith("agy:") ? "antigravity" : "claude");
 
@@ -49,7 +54,7 @@ export async function providerStatus(): Promise<ProviderStatus[]> {
 }
 
 /** Runs one agent step on whichever provider owns the model. */
-export function runAgent(opts: { prompt: string; cwd: string; model: string; permissionMode?: PermissionMode; onEvent?: (e: ClaudeEvent) => void }) {
+export function runAgent(opts: { prompt: string; cwd: string; model: string; effort?: Effort; permissionMode?: PermissionMode; onEvent?: (e: ClaudeEvent) => void }) {
   if (providerOf(opts.model) === "antigravity") {
     if (!store.get<{ granted: boolean }>("settings", "antigravity")?.granted) throw new Error("Connect Antigravity first: Settings → Connections.");
     return runAgy({ ...opts, model: opts.model.slice(4) });

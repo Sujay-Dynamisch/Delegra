@@ -5,14 +5,20 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/client";
-import type { Agent, ModelInfo } from "@/lib/types";
+import type { Agent, Effort, ModelInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /* ---------- models ---------- */
+/** Same list the server sends; used until /api/models answers, and to label saved aliases. */
 const FALLBACK: ModelInfo[] = [
-  { id: "haiku", label: "Claude Haiku", provider: "claude", tier: "fast", note: "Research, checks, simple edits" },
-  { id: "sonnet", label: "Claude Sonnet", provider: "claude", tier: "balanced", note: "Features, fixes, reviews" },
-  { id: "opus", label: "Claude Opus", provider: "claude", tier: "deep", note: "Architecture, risky changes" },
+  { id: "default", label: "Default (recommended)", sub: "Your plan's recommended model", provider: "claude", tier: "balanced", note: "Best for everyday, complex tasks" },
+  { id: "claude-opus-5-5", label: "Opus 5.5", provider: "claude", tier: "deep", note: "For complex work and everyday tasks" },
+  { id: "claude-sonnet-5-5", label: "Sonnet 5.5", provider: "claude", tier: "balanced", note: "Most efficient for simpler tasks" },
+  { id: "claude-fable-5-2", label: "Fable 5.2", provider: "claude", tier: "deep", note: "For your toughest challenges" },
+  { id: "claude-haiku-5-5", label: "Haiku 5.5", provider: "claude", tier: "fast", note: "Fastest for quick answers" },
+  { id: "opus", label: "Opus (latest)", provider: "claude", tier: "deep", note: "Always the newest Opus", hidden: true },
+  { id: "sonnet", label: "Sonnet (latest)", provider: "claude", tier: "balanced", note: "Always the newest Sonnet", hidden: true },
+  { id: "haiku", label: "Haiku (latest)", provider: "claude", tier: "fast", note: "Always the newest Haiku", hidden: true },
 ];
 let cache: ModelInfo[] | null = null;
 export function useModels() {
@@ -21,7 +27,6 @@ export function useModels() {
   return models;
 }
 export const TIER_DOT: Record<ModelInfo["tier"], string> = { fast: "bg-emerald-500", balanced: "bg-amber-500", deep: "bg-rose-500" };
-const TIER_LABEL: Record<ModelInfo["tier"], string> = { fast: "Fast · cheapest", balanced: "Balanced", deep: "Deep reasoning" };
 export function modelInfo(id: string | undefined, models: ModelInfo[]): ModelInfo {
   const m = id || "sonnet";
   return models.find((x) => x.id === m) || FALLBACK.find((x) => x.id === m) ||
@@ -29,26 +34,32 @@ export function modelInfo(id: string | undefined, models: ModelInfo[]): ModelInf
 }
 export function ProviderMark({ provider, className }: { provider: ModelInfo["provider"]; className?: string }) {
   return provider === "antigravity"
-    ? <span className={cn("grid size-5 place-items-center rounded-md bg-sky-500/15 text-sky-600", className)}><Sparkles className="size-3" /></span>
-    : <span className={cn("grid size-5 place-items-center rounded-md bg-[#d97757]/15 text-[11px] font-bold text-[#c2603f]", className)}>C</span>;
+    ? <span className={cn("grid size-5 shrink-0 place-items-center rounded-md bg-sky-500/15 text-sky-600", className)}><Sparkles className="size-3" /></span>
+    : <span className={cn("grid size-5 shrink-0 place-items-center rounded-md bg-[#d97757]/15 text-[11px] font-bold text-[#c2603f]", className)}>C</span>;
 }
-function ModelRow({ m, compact }: { m: ModelInfo; compact?: boolean }) {
+/** Two-line row like Claude Code's /model picker: name, then what it is for. */
+function ModelRow({ m }: { m: ModelInfo }) {
   return (
-    <span className="flex min-w-0 items-center gap-2">
-      <ProviderMark provider={m.provider} />
-      <span className="truncate">{m.label}</span>
-      {!compact && <span className="ml-auto flex items-center gap-1.5 pl-3 text-xs text-muted-foreground"><span className={cn("size-1.5 rounded-full", TIER_DOT[m.tier])} />{TIER_LABEL[m.tier]}</span>}
+    <span className="flex min-w-0 items-start gap-2.5 py-0.5">
+      <ProviderMark provider={m.provider} className="mt-0.5" />
+      <span className="grid min-w-0 gap-0.5">
+        <span className="flex items-center gap-1.5 font-medium">{m.label}<span className={cn("size-1.5 rounded-full", TIER_DOT[m.tier])} title={m.tier} /></span>
+        <span className="truncate text-xs text-muted-foreground">{m.id === "default" ? "Opus 5.5 · " : ""}{m.note}</span>
+      </span>
     </span>
   );
 }
 export function ModelPicker({ value, onChange, disabled, className }: { value?: string; onChange: (v: string) => void; disabled?: boolean; className?: string }) {
   const models = useModels();
   const current = modelInfo(value, models);
-  const groups: [string, ModelInfo[]][] = [["Claude Code", models.filter((m) => m.provider === "claude")], ["Antigravity", models.filter((m) => m.provider === "antigravity")]];
+  const visible = models.filter((m) => !m.hidden || m.id === current.id);
+  const groups: [string, ModelInfo[]][] = [["Claude Code", visible.filter((m) => m.provider === "claude")], ["Antigravity", visible.filter((m) => m.provider === "antigravity")]];
   return (
     <Select value={current.id} onValueChange={(v) => v && onChange(String(v))} disabled={disabled}>
-      <SelectTrigger className={cn("h-9 w-full", className)} aria-label="Model"><SelectValue>{() => <ModelRow m={current} compact />}</SelectValue></SelectTrigger>
-      <SelectContent className="min-w-80" alignItemWithTrigger={false}>
+      <SelectTrigger className={cn("h-9 w-full", className)} aria-label="Model">
+        <SelectValue>{() => <span className="flex min-w-0 items-center gap-2"><ProviderMark provider={current.provider} /><span className="truncate">{current.label}</span></span>}</SelectValue>
+      </SelectTrigger>
+      <SelectContent className="max-h-[420px] min-w-80" alignItemWithTrigger={false}>
         {groups.filter(([, l]) => l.length).map(([g, list], i) => (
           <SelectGroup key={g}>
             {i > 0 && <SelectSeparator />}
@@ -59,6 +70,19 @@ export function ModelPicker({ value, onChange, disabled, className }: { value?: 
         {!groups[1][1].length && <p className="px-2 py-2 text-xs text-muted-foreground">Connect Antigravity in Settings to add Gemini models.</p>}
       </SelectContent>
     </Select>
+  );
+}
+
+/** Reasoning effort, passed to the CLI as --effort. Empty = the CLI's default. */
+export function EffortPicker({ value, onChange }: { value?: Effort; onChange: (v: Effort | undefined) => void }) {
+  const opts: [Effort | undefined, string][] = [[undefined, "Auto"], ["low", "Low"], ["medium", "Medium"], ["high", "High"], ["xhigh", "X-High"], ["max", "Max"]];
+  return (
+    <div role="radiogroup" aria-label="Effort" className="flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+      {opts.map(([v, l]) => (
+        <button key={l} type="button" role="radio" aria-checked={value === v} onClick={() => onChange(v)}
+          className={cn("flex-1 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap text-muted-foreground", value === v && "bg-background text-foreground shadow-xs")}>{l}</button>
+      ))}
+    </div>
   );
 }
 

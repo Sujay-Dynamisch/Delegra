@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Field, StatusPill } from "@/components/app/bits";
-import { AgentPicker, ModelPicker } from "@/components/app/pickers";
+import { AgentPicker, EffortPicker, ModelPicker } from "@/components/app/pickers";
 import { KINDS, nodeTypes, type LoNode, type NodeData } from "@/components/flow/nodes";
 import { api, db, dur, fmtTokens, useDoc, useList } from "@/lib/client";
 import type { Agent, FlowNode, Model, Run, Workflow } from "@/lib/types";
@@ -171,6 +171,7 @@ function Editor({ id }: { id: string }) {
                   <Field label="Model">
                     <ModelPicker value={sel.data.model} onChange={(m) => patch(sel.id, { model: m })} />
                   </Field>
+                  <Field label="Effort"><EffortPicker value={sel.data.effort} onChange={(effort) => patch(sel.id, { effort })} /></Field>
                   <Field label="Instruction" hint="The previous node's output is added as input automatically"><Textarea rows={7} value={sel.data.instruction || ""} onChange={(e) => patch(sel.id, { instruction: e.target.value })} placeholder="What this step must do and return." /></Field>
                   <label className="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm">
                     <span><b className="block font-medium">Can edit files</b><span className="text-xs text-muted-foreground">Off = read-only (plan mode). On = the project&apos;s access level.</span></span>

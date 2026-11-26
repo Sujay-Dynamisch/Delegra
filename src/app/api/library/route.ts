@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     const added: string[] = [];
     for (const t of picks) {
       if (have.has(t.id)) continue;
-      const model = t.tier === "fast" ? cheap || "haiku" : t.tier === "deep" ? "opus" : "sonnet";
+      const model = t.tier === "fast" ? cheap || "claude-haiku-5-5" : t.tier === "deep" ? "claude-opus-5-5" : "claude-sonnet-5-5";
       added.push(store.insert<Omit<Agent, "id">>("agents", { name: t.name, model, role: t.role, skills: t.skills, instructions: t.instructions, icon: t.icon, template: t.id }));
     }
     return { added: added.length, skipped: picks.length - added.length };

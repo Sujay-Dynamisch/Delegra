@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Empty, Field, ModelTag, PageHeader } from "@/components/app/bits";
-import { AGENT_ICONS, agentIcon, ModelPicker, TIER_DOT, useModels } from "@/components/app/pickers";
+import { AGENT_ICONS, agentIcon, EffortPicker, ModelPicker, TIER_DOT, useModels } from "@/components/app/pickers";
 import { api, db, useList } from "@/lib/client";
 import { GROUPS, TEMPLATES } from "@/lib/templates";
 import type { Agent } from "@/lib/types";
@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 type Form = Omit<Agent, "id"> & { id?: string };
 const blank = (): Form => ({ name: "", model: "sonnet", role: "", skills: [], instructions: "", icon: "code" });
-const TIER_MODEL = { fast: "Haiku / Gemini Flash", balanced: "Sonnet", deep: "Opus" };
+const TIER_MODEL = { fast: "Haiku 5.5 / Gemini Flash", balanced: "Sonnet 5.5", deep: "Opus 5.5" };
 
 export default function Agents() {
   const agents = useList<Agent>("agents").rows || [];
@@ -58,6 +58,7 @@ export default function Agents() {
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Name"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Reviewer" autoFocus /></Field>
             <Field label="Model" hint="Cheaper models for simple roles save tokens"><ModelPicker value={form.model} onChange={(model) => setForm({ ...form, model })} /></Field>
+            <Field label="Effort" hint="Default reasoning effort for this agent" className="md:col-span-2"><EffortPicker value={form.effort} onChange={(effort) => setForm({ ...form, effort })} /></Field>
             <Field label="Icon" className="md:col-span-2">
               <div className="flex flex-wrap gap-1.5">
                 {Object.entries(AGENT_ICONS).map(([k, I]) => (
