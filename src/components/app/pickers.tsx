@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { api } from "@/lib/client";
+import { useApp } from "./project-context";
 import type { Agent, Effort, ModelInfo } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,7 @@ function ModelRow({ m }: { m: ModelInfo }) {
 }
 export function ModelPicker({ value, onChange, disabled, className }: { value?: string; onChange: (v: string) => void; disabled?: boolean; className?: string }) {
   const models = useModels();
+  const { agyInstalled } = useApp();
   const current = modelInfo(value, models);
   const visible = models.filter((m) => !m.hidden || m.id === current.id);
   const groups: [string, ModelInfo[]][] = [["Claude Code", visible.filter((m) => m.provider === "claude")], ["Antigravity", visible.filter((m) => m.provider === "antigravity")]];
@@ -67,7 +69,7 @@ export function ModelPicker({ value, onChange, disabled, className }: { value?: 
             {list.map((m) => <SelectItem key={m.id} value={m.id} className="py-1.5"><ModelRow m={m} /></SelectItem>)}
           </SelectGroup>
         ))}
-        {!groups[1][1].length && <p className="px-2 py-2 text-xs text-muted-foreground">Connect Antigravity in Settings to add Gemini models.</p>}
+        {!groups[1][1].length && agyInstalled && <p className="px-2 py-2 text-xs text-muted-foreground">Allow Antigravity in Settings to add Gemini models.</p>}
       </SelectContent>
     </Select>
   );

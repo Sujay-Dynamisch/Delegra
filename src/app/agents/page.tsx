@@ -11,18 +11,20 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Empty, Field, ModelTag, PageHeader } from "@/components/app/bits";
 import { AGENT_ICONS, agentIcon, EffortPicker, ModelPicker, TIER_DOT, useModels } from "@/components/app/pickers";
 import { api, db, useList } from "@/lib/client";
+import { useApp } from "@/components/app/project-context";
 import { GROUPS, TEMPLATES } from "@/lib/templates";
 import type { Agent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Form = Omit<Agent, "id"> & { id?: string };
 const blank = (): Form => ({ name: "", model: "sonnet", role: "", skills: [], instructions: "", icon: "code" });
-const TIER_MODEL = { fast: "Haiku 5.5 / Gemini Flash", balanced: "Sonnet 5.5", deep: "Opus 5.5" };
+const TIER_MODEL = { fast: "Haiku 5.5", balanced: "Sonnet 5.5", deep: "Opus 5.5" };
 
 export default function Agents() {
   const agents = useList<Agent>("agents").rows || [];
   const models = useModels();
   const hasAgy = models.some((m) => m.provider === "antigravity");
+  const { agyInstalled } = useApp();
   const [form, setForm] = useState<Form | null>(null);
   const [skill, setSkill] = useState("");
   const [library, setLibrary] = useState(false);
@@ -143,11 +145,11 @@ export default function Agents() {
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-3 border-t p-4">
-            <label className={cn("flex items-center gap-2 text-sm", !hasAgy && "opacity-60")}>
+            {agyInstalled && <label className={cn("flex items-center gap-2 text-sm", !hasAgy && "opacity-60")}>
               <Switch checked={cheap && hasAgy} disabled={!hasAgy} onCheckedChange={(v) => setCheap(!!v)} />
               Run fast roles on Gemini Flash (Antigravity) to save Claude usage
-            </label>
-            {!hasAgy && <span className="text-xs text-muted-foreground">Connect Antigravity in Settings first.</span>}
+            </label>}
+            {agyInstalled && !hasAgy && <span className="text-xs text-muted-foreground">Allow Antigravity in Settings first.</span>}
             <div className="ml-auto flex gap-2">
               <Button variant="ghost" onClick={() => setPicked(TEMPLATES.filter((t) => !installed.has(t.id)).map((t) => t.id))}>Select all</Button>
               <Button disabled={!picked.length || busy} onClick={install}>{busy && <Loader2 className="animate-spin" />}Add {picked.length || ""} agent{picked.length === 1 ? "" : "s"}</Button>

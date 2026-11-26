@@ -7,6 +7,8 @@ type Ctx = {
   projects: Project[]; project: Project | null; setProjectId: (id: string) => void;
   claude: ClaudeStatus | null; refreshClaude: () => Promise<void>; connectOpen: boolean; setConnectOpen: (o: boolean) => void;
   providers: ProviderStatus[] | null;
+  /** True when the Antigravity CLI is installed on this computer. */
+  agyInstalled: boolean;
 };
 const C = createContext<Ctx | null>(null);
 export const useApp = () => useContext(C)!;
@@ -28,6 +30,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const project = projects.find((p) => p.id === id) || projects[0] || null;
   const value: Ctx = {
     projects, project, claude, refreshClaude, connectOpen, setConnectOpen, providers,
+    agyInstalled: !!providers?.some((p) => p.id === "antigravity" && p.installed),
     setProjectId: (v) => { setId(v); try { localStorage.setItem("lo.project", v); } catch {} },
   };
   return <C.Provider value={value}>{children}</C.Provider>;

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
-  Bot, ChartNoAxesColumn, FolderGit2, History, House, ListChecks, MessageSquare, Moon, Plus, Settings, Sun, Workflow, Zap, Layers,
+  BookOpen, Bot, ChartNoAxesColumn, FolderGit2, History, House, ListChecks, MessageSquare, Moon, Plus, Settings, Sun, Workflow, Zap, Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ const NAV = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/analytics", label: "Analytics", icon: ChartNoAxesColumn },
   { href: "/projects", label: "Projects", icon: FolderGit2 },
+  { href: "/docs", label: "Docs", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

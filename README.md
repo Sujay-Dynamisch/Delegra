@@ -11,6 +11,10 @@ A local dashboard that orchestrates **Claude Code agents across any project on y
 - **Analytics:** token use by model, success rate and activity, from what Claude Code reports.
 - **Rules:** guardrails that are added to every agent prompt.
 
+## Documentation
+
+Full step-by-step docs are built into the app: open **Docs** in the sidebar (http://127.0.0.1:3210/docs).
+
 ## How "Connect Claude" works
 
 There is no API key. The app drives the **Claude Code CLI** (`claude -p`) on this machine:
@@ -23,7 +27,7 @@ The app never reads, copies or stores Claude credentials.
 
 ## Run it
 
-Requirements: Node 20+, and Claude Code installed (`npm i -g @anthropic-ai/claude-code`).
+Requirements: Node 20+, and Claude Code installed (`npm i -g @anthropic-ai/claude-code`). Antigravity (`agy`) is optional; when it is not installed, its options are hidden.
 
 ```bash
 npm install

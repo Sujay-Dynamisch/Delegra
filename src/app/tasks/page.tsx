@@ -44,7 +44,7 @@ function TasksPage() {
 
   return (
     <>
-      <PageHeader title="Tasks" sub="Each task is one AI agent (Claude Code or Antigravity) working in this project.">
+      <PageHeader title="Tasks" sub="Each task is one AI agent working in this project.">
         {!form && <Button onClick={() => setForm({ title: "", prompt: "", model: "default", agentId: "" })}><Plus />New task</Button>}
       </PageHeader>
       {form && (

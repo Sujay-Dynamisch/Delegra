@@ -20,6 +20,8 @@ const INSTALL: Record<string, string> = { claude: "npm install -g @anthropic-ai/
 /** One row per provider: install → sign in → allow. Sign-in happens in the provider's own app or page. */
 export function ProviderList() {
   const { providers, refreshClaude } = useApp();
+  // Optional providers are listed only when installed on this computer.
+  const shown = (providers || []).filter((p) => p.id === "claude" || p.installed);
   const [busy, setBusy] = useState<string | null>(null);
   const [waiting, setWaiting] = useState(false);
   useEffect(() => {
@@ -43,7 +45,7 @@ export function ProviderList() {
   if (!providers) return <div className="flex justify-center py-6"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>;
   return (
     <div className="grid gap-3">
-      {providers.map((p) => {
+      {shown.map((p) => {
         const state = !p.installed ? "install" : !p.signedIn ? "login" : !p.granted ? "grant" : "on";
         return (
           <div key={p.id} className={cn("flex flex-wrap items-center gap-3 rounded-xl border p-3", state === "on" && "border-emerald-500/40 bg-emerald-500/5")}>
@@ -67,7 +69,7 @@ export function ProviderList() {
 
 /** Consent screen, styled like an OAuth grant. */
 export function ConnectClaude() {
-  const { connectOpen, setConnectOpen } = useApp();
+  const { connectOpen, setConnectOpen, agyInstalled } = useApp();
   return (
     <Dialog open={connectOpen} onOpenChange={(o) => setConnectOpen(o)}>
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
@@ -75,12 +77,12 @@ export function ConnectClaude() {
           <div className="grid size-12 place-items-center rounded-2xl bg-foreground text-background shadow-sm"><Layers className="size-6" /></div>
           <div className="h-px w-8 border-t border-dashed border-muted-foreground/50" />
           <ProviderMark provider="claude" className="size-11 rounded-2xl text-lg" />
-          <ProviderMark provider="antigravity" className="size-11 rounded-2xl [&_svg]:size-5" />
+          {agyInstalled && <ProviderMark provider="antigravity" className="size-11 rounded-2xl [&_svg]:size-5" />}
         </div>
         <div className="grid gap-5 px-6 py-6">
           <div className="text-center">
-            <DialogTitle className="text-lg">Connect your AI plans</DialogTitle>
-            <DialogDescription className="mt-1">Lean Orchestrator runs agents through the CLIs signed in on this computer. Connect one or both; cheap steps can go to Gemini, hard ones to Claude.</DialogDescription>
+            <DialogTitle className="text-lg">{agyInstalled ? "Connect your AI plans" : "Connect your Claude plan"}</DialogTitle>
+            <DialogDescription className="mt-1">{agyInstalled ? "Lean Orchestrator runs agents through the CLIs signed in on this computer. Connect one or both; cheap steps can go to Gemini, hard ones to Claude." : "Lean Orchestrator runs agents through Claude Code, signed in on this computer."}</DialogDescription>
           </div>
           <ul className="grid gap-2.5 text-sm">
             {SCOPES.map(({ icon: Icon, text }) => <li key={text} className="flex items-start gap-3"><Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />{text}</li>)}

@@ -12,7 +12,7 @@ import type { Run, Task, Workflow as Wf } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function Overview() {
-  const { project, providers, setConnectOpen } = useApp();
+  const { project, providers, setConnectOpen, agyInstalled } = useApp();
   const models = useModels();
   const router = useRouter();
   const [goal, setGoal] = useState("");
@@ -43,7 +43,7 @@ export default function Overview() {
       <PageHeader title="Lean orchestration" sub={`Multi-agent work in ${project.name}, routed to the cheapest model that can do each step.`} />
       {providers && !providers.some((p) => p.signedIn && p.granted) && (
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
-          <span>Connect Claude Code or Antigravity so agents can run in this project.</span>
+          <span>Connect {agyInstalled ? "Claude Code or Antigravity" : "Claude Code"} so agents can run in this project.</span>
           <Button size="sm" onClick={() => setConnectOpen(true)}>Connect AI</Button>
         </div>
       )}
