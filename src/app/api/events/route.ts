@@ -1,9 +1,11 @@
 import { bus } from "@/server/bus";
 import { guard } from "@/server/http";
+import { startClaudeWatch } from "@/server/claude-sync";
 
 /** Server-sent events: the name of each collection that changed, so open tabs refetch it. */
 export async function GET(req: Request) {
   try { guard(req); } catch { return new Response("Forbidden", { status: 403 }); }
+  startClaudeWatch();
   const enc = new TextEncoder();
   let cleanup = () => {};
   const stream = new ReadableStream({

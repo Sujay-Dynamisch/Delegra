@@ -19,7 +19,7 @@ function TasksPage() {
   const params = useSearchParams();
   const { project } = useApp();
   const { rows } = useList<Task>("tasks", project ? project.id : null);
-  const agents = useList<Agent>("agents").rows || [];
+  const agents = useList<Agent>("agents", project?.id).rows || [];
   const tasks = useMemo(() => rows || [], [rows]);
   const [filter, setFilter] = useState<(typeof FILTERS)[number][0]>("all");
   const [q, setQ] = useState("");

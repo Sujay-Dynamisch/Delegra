@@ -11,7 +11,9 @@ export type Status = "queued" | "working" | "done" | "blocked";
 
 export type Row = { id: string; createdAt?: string; updatedAt?: string };
 export type Project = Row & { name: string; path: string; permissionMode: PermissionMode; branch?: string; stack?: string[] };
-export type Agent = Row & { name: string; model: Model; role: string; skills: string[]; instructions: string; icon?: string; template?: string; effort?: Effort };
+export type Agent = Row & { name: string; model: Model; role: string; skills: string[]; instructions: string; icon?: string; template?: string; effort?: Effort;
+  /** Set for subagents read from Claude Code (.claude/agents); those are edited there, not here. */
+  source?: "claude-code"; scope?: "user" | "project"; projectId?: string; file?: string };
 export type Update = { at: string; text: string; kind?: "text" | "tool" | "system" };
 export type Task = Row & {
   projectId: string; title: string; prompt: string; model: Model; effort?: Effort; agentId?: string; status: Status; progress: number;
@@ -31,3 +33,7 @@ export type Run = Row & {
 };
 export type Settings = { rules: string[]; claude?: { granted: boolean; grantedAt?: string; scopes: string[] } };
 export type ClaudeStatus = { installed: boolean; version?: string; loggedIn: boolean; authMethod?: string; plan?: string; expiresAt?: string; granted: boolean; grantedAt?: string };
+
+/** A Claude Code conversation in a project folder (from the CLI, an IDE extension, or a Delegra chat). */
+export type SessionSummary = { id: string; title: string; origin: "delegra" | "vscode" | "jetbrains" | "cli"; updatedAt: string; branch?: string; sizeKb: number };
+export type SessionMessage = { role: "user" | "assistant"; text: string; at?: string; model?: string };

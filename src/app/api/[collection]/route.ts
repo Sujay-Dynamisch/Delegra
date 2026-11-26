@@ -3,6 +3,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { handle, json } from "@/server/http";
 import { HttpError, store } from "@/server/store";
+import { claudeAgents } from "@/server/claude-sync";
 import type { Project } from "@/lib/types";
 
 const ALLOWED = new Set(["projects", "agents", "tasks", "workflows", "runs", "settings"]);
@@ -14,6 +15,8 @@ export async function GET(req: Request, ctx: { params: Promise<{ collection: str
     check(collection);
     const project = new URL(req.url).searchParams.get("project");
     const rows = store.list<{ projectId?: string; createdAt?: string }>(collection);
+    // Agents are global; Claude Code subagents follow them (user-level, then the project's own).
+    if (collection === "agents") return [...rows.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))), ...claudeAgents(project)];
     return (project ? rows.filter((r) => r.projectId === project) : rows).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
   });
 }

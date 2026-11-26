@@ -71,7 +71,7 @@ Most coding work does not need your most expensive model. Delegra lets you split
     <td width="50%" valign="top">
       <img src=".github/assets/chat.png" alt="Claude-style chat with code formatting">
       <h3>Chat</h3>
-      A read-only chat about your project, with agent and model pickers in the composer. Start with <code>/lean</code> to get a staged, cheap plan before anything changes.
+      A read-only chat about your project, with history per project. Chats are Claude Code sessions, so conversations from the terminal or the VS Code / JetBrains extension show up here, and chats here can be resumed there. Start with <code>/lean</code> to get a staged, cheap plan before anything changes.
     </td>
   </tr>
   <tr>
@@ -86,6 +86,7 @@ Most coding work does not need your most expensive model. Delegra lets you split
         <li><b>Tasks:</b> one agent per task, with live activity, changed files, tokens, duration, and Run / Stop / Re-run.</li>
         <li><b>Executions:</b> every workflow run, with each node's output.</li>
         <li><b>Analytics:</b> token use by model, success rate and 7-day activity.</li>
+        <li><b>Claude Code agents:</b> subagents from <code>~/.claude/agents</code> and the project's <code>.claude/agents</code> appear automatically.</li>
         <li><b>Rules:</b> guardrails added to every prompt so agents stay in their lane and don't guess.</li>
         <li><b>Docs:</b> a complete step-by-step guide inside the app.</li>
         <li><b>Light and dark themes</b>, with the Delegra palette.</li>

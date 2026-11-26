@@ -29,7 +29,7 @@ const edgeStyle = { strokeWidth: 2 };
 
 function Editor({ id }: { id: string }) {
   const { doc: wf } = useDoc<Workflow>("workflows", id);
-  const agentRows = useList<Agent>("agents").rows;
+  const agentRows = useList<Agent>("agents", wf?.projectId).rows;
   const agents = useMemo(() => agentRows || [], [agentRows]);
   const runs = (useList<Run>("runs", wf ? wf.projectId : null).rows || []).filter((r) => r.workflowId === id);
   const run = runs[0];

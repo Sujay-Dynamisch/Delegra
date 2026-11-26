@@ -21,10 +21,10 @@ const blank = (): Form => ({ name: "", model: "sonnet", role: "", skills: [], in
 const TIER_MODEL = { fast: "Haiku 5.5", balanced: "Sonnet 5.5", deep: "Opus 5.5" };
 
 export default function Agents() {
-  const agents = useList<Agent>("agents").rows || [];
+  const { agyInstalled, project } = useApp();
+  const agents = useList<Agent>("agents", project?.id).rows || [];
   const models = useModels();
   const hasAgy = models.some((m) => m.provider === "antigravity");
-  const { agyInstalled } = useApp();
   const [form, setForm] = useState<Form | null>(null);
   const [skill, setSkill] = useState("");
   const [library, setLibrary] = useState(false);
@@ -103,10 +103,14 @@ export default function Agents() {
                 </div>
                 {a.role && <p className="text-sm text-muted-foreground">{a.role}</p>}
                 {!!a.skills?.length && <div className="flex flex-wrap gap-1.5">{a.skills.map((s) => <span key={s} className="rounded-md bg-muted px-2 py-0.5 text-xs">{s}</span>)}</div>}
-                <div className="mt-auto flex gap-1 pt-2">
+                <div className="mt-auto flex items-center gap-1 pt-2">
                   <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`/chat?agent=${a.id}`} />}><MessageSquare />Chat</Button>
+                  {a.source === "claude-code" ? (
+                    <span title={a.file} className="ml-auto rounded-md bg-primary/10 px-2 py-0.5 text-xs text-primary">From Claude Code · {a.scope === "project" ? "this project" : "all projects"}</span>
+                  ) : <>
                   <Button size="icon" variant="ghost" aria-label={`Edit ${a.name}`} className="ml-auto" onClick={() => { setForm({ ...a }); window.scrollTo({ top: 0, behavior: "smooth" }); }}><Pencil /></Button>
                   <Button size="icon" variant="ghost" aria-label={`Delete ${a.name}`} onClick={() => { if (confirm(`Delete ${a.name}?`)) db.remove("agents", a.id); }}><Trash2 /></Button>
+                  </>}
                 </div>
               </article>
             );

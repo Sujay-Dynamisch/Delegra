@@ -54,7 +54,7 @@ export async function providerStatus(): Promise<ProviderStatus[]> {
 }
 
 /** Runs one agent step on whichever provider owns the model. */
-export function runAgent(opts: { prompt: string; cwd: string; model: string; effort?: Effort; permissionMode?: PermissionMode; onEvent?: (e: ClaudeEvent) => void }) {
+export function runAgent(opts: { prompt: string; cwd: string; model: string; effort?: Effort; permissionMode?: PermissionMode; resume?: string; onEvent?: (e: ClaudeEvent) => void }) {
   if (providerOf(opts.model) === "antigravity") {
     if (!store.get<{ granted: boolean }>("settings", "antigravity")?.granted) throw new Error("Connect Antigravity first: Settings → Connections.");
     return runAgy({ ...opts, model: opts.model.slice(4) });

@@ -2,6 +2,7 @@ import "server-only";
 import type { Agent, FlowNode, Project, Run, Settings, Task, Update, Workflow } from "@/lib/types";
 import { runAgent } from "./providers";
 import { HttpError, store } from "./store";
+import { CHAT_SPLIT, DELEGRA_MARK, getAgent } from "./claude-sync";
 
 export const DEFAULT_RULES = [
   "Work only inside your assigned files or module; never edit another agent's files.",
@@ -17,7 +18,7 @@ function brief(agent: Agent | null) {
     agent ? `You are "${agent.name}".${agent.role ? " Role: " + agent.role + "." : ""}` : "You are an engineer on this project.",
     agent?.skills?.length ? `Skills: ${agent.skills.join(", ")}.` : "",
     agent?.instructions ? `Standing instructions:\n${agent.instructions}` : "",
-    `Team rules (always follow):\n${rules()}`,
+    `${DELEGRA_MARK}\n${rules()}`,
   ].filter(Boolean).join("\n\n");
 }
 const now = () => new Date().toISOString();
@@ -31,7 +32,7 @@ export function runTask(id: string) {
   const project = store.get<Project>("projects", task.projectId);
   if (!project) throw new HttpError(400, "The task's project no longer exists");
   if (live.has(id)) throw new HttpError(409, "Task is already running");
-  const agent = task.agentId ? store.get<Agent>("agents", task.agentId) : null;
+  const agent = getAgent(task.agentId);
   const updates: Update[] = [{ at: now(), text: `Started on ${task.model}`, kind: "system" }];
   const files = new Set(task.files || []);
   let tools = 0;
@@ -104,7 +105,7 @@ export function runWorkflow(id: string, trigger: Run["trigger"] = "manual") {
         nodes[ready.id] = { status: "ok", output: hit ? "true" : "false", finishedAt: now() };
         save({}); continue;
       }
-      const agent = ready.data.agentId ? store.get<Agent>("agents", ready.data.agentId) : null;
+      const agent = getAgent(ready.data.agentId);
       const prompt = `${brief(agent)}\n\nWorkflow goal: ${wf.description || wf.name}\n` +
         (input ? `\nInput from the previous step:\n${input.slice(0, 6000)}\n` : "") +
         `\nYour step:\n${ready.data.instruction || ready.data.label}\n\nReply in the shortest complete form. If you lack information, say UNKNOWN and what you need.`;
@@ -128,14 +129,19 @@ export function runWorkflow(id: string, trigger: Run["trigger"] = "manual") {
   return runId;
 }
 
-/* ---------- one-off prompt (chat), read-only ---------- */
-export function ask(projectId: string, prompt: string, model: Task["model"], agentId?: string, onText?: (t: string) => void) {
+/** Lets chat answers include rich views; rendered by components/app/rich-answer.tsx. */
+const A2UI_HINT = "Format answers in Markdown (headings, lists, tables). When a visual summary helps (status, metrics, comparisons, choices), you may add ONE ```a2ui block: A2UI v0.8 JSONL with a surfaceUpdate {surfaceId, components:[{id, component:{Text|Card|Row|Column|List|Divider|Icon|Button|Tabs}}]} line, then a beginRendering {surfaceId, root} line. Text: {text:{literalString}, usageHint:h1-h5|caption|body}. Card: {child}. Row/Column/List: {children:{explicitList:[ids]}}. Button: {child, primary, action:{name}}; clicking sends the action name back as the user's next message.";
+
+/* ---------- chat, read-only: a Claude Code session, so it syncs with the CLI and IDE extensions ---------- */
+export function ask(projectId: string, prompt: string, model: Task["model"], agentId?: string, onText?: (t: string) => void, resume?: string) {
   const project = store.get<Project>("projects", projectId);
   if (!project) throw new HttpError(400, "Pick a project first");
-  const agent = agentId ? store.get<Agent>("agents", agentId) : null;
+  if (resume && model.startsWith("agy:")) throw new HttpError(400, "Pick a Claude model to continue a Claude Code conversation.");
+  const agent = getAgent(agentId);
   let text = "";
   return runAgent({
-    prompt: `${brief(agent)}\n\nBe concise. Never invent facts.\n\n${prompt}`, cwd: project.path, model, permissionMode: "plan",
+    // A resumed session already has the brief, so only the new message is sent.
+    prompt: resume ? prompt : `${brief(agent)}\n\n${A2UI_HINT}\n\n${CHAT_SPLIT}${prompt}`, resume, cwd: project.path, model, permissionMode: "plan",
     onEvent: (e) => { if (e.kind === "text") { text += (text ? "\n\n" : "") + e.text; onText?.(text); } },
   });
 }

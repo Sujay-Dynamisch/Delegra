@@ -48,11 +48,11 @@ export function useDoc<T>(collection: string, id: string | null) {
 }
 
 /** Streams a read-only answer from Claude in the selected project. */
-export async function streamChat(body: { projectId: string; prompt: string; model: string; agentId?: string }, onText: (t: string) => void, signal?: AbortSignal) {
+export async function streamChat(body: { projectId: string; prompt: string; model: string; agentId?: string; sessionId?: string }, onText: (t: string) => void, signal?: AbortSignal) {
   const r = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal });
   if (!r.ok || !r.body) throw new Error((await r.json().catch(() => ({}))).error || "No answer");
   const reader = r.body.getReader(), dec = new TextDecoder();
-  let buf = "", last: { ok: boolean; text: string; error?: string; tokens?: number } | null = null;
+  let buf = "", last: { ok: boolean; text: string; error?: string; tokens?: number; sessionId?: string | null } | null = null;
   for (;;) {
     const { value, done } = await reader.read();
     if (done) break;
@@ -76,4 +76,17 @@ export const ago = (t?: string | null) => {
   return `${Math.floor(s / 86400)}d ago`;
 };
 export const dur = (ms?: number | null) => { if (ms == null || !(ms >= 0)) return "—"; const s = Math.round(ms / 1000); return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`; };
-export const fmtTokens = (n?: number | null) => (n == null ? "—" : n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : String(n));
+export const fmtTokens = (n?: number | null) => (n == null ? "—" : n >= 1e9 ? (n / 1e9).toFixed(1) + "B" : n >= 1e6 ? (n / 1e6).toFixed(1) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "K" : String(n));
+
+/** GETs a URL and refetches it whenever one of `on` changes. */
+export function useJson<T>(url: string | null, on: string[]) {
+  const [data, setData] = useState<T | null>(null);
+  const key = on.join();
+  useEffect(() => {
+    if (!url) return;
+    const load = () => api<T>(url).then(setData, () => {});
+    load();
+    return subscribe((c) => { if (key.split(",").includes(c)) load(); });
+  }, [url, key]);
+  return data;
+}

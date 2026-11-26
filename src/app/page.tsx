@@ -2,14 +2,17 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, Clock, Coins, FileText, FolderGit2, Layers, ListChecks, Workflow, Zap } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, Coins, FileText, FolderGit2, Layers, ListChecks, MessageSquare, Workflow, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/components/app/project-context";
 import { Empty, ModelTag, PageHeader, Stat, StatusPill } from "@/components/app/bits";
 import { modelInfo, ProviderMark, TIER_DOT, useModels } from "@/components/app/pickers";
-import { ago, dur, fmtTokens, useList } from "@/lib/client";
-import type { Run, Task, Workflow as Wf } from "@/lib/types";
+import { ago, dur, fmtTokens, useJson, useList } from "@/lib/client";
+import type { Run, SessionSummary, Task, Workflow as Wf } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+type Usage = { tokens: number; turns: Record<string, number>; edits: { file: string; at: string; session: string }[]; sessions: SessionSummary[]; sessionCount: number; live: number };
+const ORIGIN = { delegra: "Delegra", vscode: "VS Code", jetbrains: "JetBrains", cli: "Terminal" } as const;
 
 export default function Overview() {
   const { project, providers, setConnectOpen, agyInstalled } = useApp();
@@ -19,13 +22,19 @@ export default function Overview() {
   const tasks = useList<Task>("tasks", project ? project.id : null).rows || [];
   const runs = useList<Run>("runs", project ? project.id : null).rows || [];
   const workflows = useList<Wf>("workflows", project ? project.id : null).rows || [];
+  // Work done in Claude Code itself (terminal, VS Code, JetBrains) in this folder.
+  const cc = useJson<Usage>(project ? `/api/usage?project=${project.id}` : null, ["sessions"]);
 
   if (!project) return (
     <div className="rounded-2xl border bg-card"><Empty icon={FolderGit2} title="Connect a project folder to start orchestrating agents in it."><Button nativeButton={false} render={<Link href="/projects" />}>Add a project</Button></Empty></div>
   );
 
   const n = (s: Task["status"]) => tasks.filter((t) => t.status === s).length;
-  const tokens = tasks.reduce((a, t) => a + (t.tokens || 0), 0) + runs.reduce((a, r) => a + (r.tokens || 0), 0);
+  const tokens = tasks.reduce((a, t) => a + (t.tokens || 0), 0) + runs.reduce((a, r) => a + (r.tokens || 0), 0) + (cc?.tokens || 0);
+  // Model share: Delegra tasks plus Claude Code replies, by model.
+  const share: Record<string, number> = { ...(cc?.turns || {}) };
+  for (const t of tasks) share[t.model || "default"] = (share[t.model || "default"] || 0) + 1;
+  const shareTotal = Object.values(share).reduce((a, b) => a + b, 0);
   const timed = tasks.filter((t) => t.durationMs);
   const avg = timed.length ? timed.reduce((a, t) => a + (t.durationMs || 0), 0) / timed.length : null;
   const run = runs.find((r) => r.status === "running") || runs[0];
@@ -35,7 +44,8 @@ export default function Overview() {
   const pct = steps.length ? Math.round((doneSteps / steps.length) * 100) : 0;
   const log = tasks.flatMap((t) => (t.updates || []).map((u) => ({ ...u, who: t.title, model: t.model }))).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 30);
   const queue = tasks.filter((t) => t.status === "queued" || t.status === "blocked");
-  const files = [...new Map(tasks.flatMap((t) => (t.files || []).map((f) => [f, { f, at: t.updatedAt, by: t.title }] as const))).values()].slice(0, 6);
+  const files = [...new Map([...tasks.flatMap((t) => (t.files || []).map((f) => ({ f, at: t.updatedAt, by: t.title }))), ...(cc?.edits || []).map((x) => ({ f: x.file, at: x.at, by: x.session }))]
+    .sort((a, b) => String(b.at).localeCompare(String(a.at))).map((x) => [x.f, x] as const)).values()].slice(0, 6);
   const lean = () => { if (goal.trim()) router.push(`/chat?lean=1&q=${encodeURIComponent(goal.trim())}`); };
 
   return (
@@ -56,9 +66,9 @@ export default function Overview() {
       </form>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={Layers} value={n("working")} label="Active agents" sub={`of ${tasks.length} tasks`} />
+        <Stat icon={Layers} value={n("working") + (cc?.live || 0)} label="Active agents" sub={`${tasks.length} tasks · ${cc?.sessionCount ?? 0} Claude Code chats`} />
         <Stat icon={CheckCircle2} value={n("done")} label="Tasks completed" sub={n("blocked") ? `${n("blocked")} blocked` : "Nothing blocked"} />
-        <Stat icon={Coins} value={fmtTokens(tokens)} label="Tokens used" sub="Reported by Claude Code" />
+        <Stat icon={Coins} value={fmtTokens(tokens)} label="Tokens used" sub="Claude Code + Delegra, incl. cached" />
         <Stat icon={Clock} value={dur(avg)} label="Avg. task time" sub={timed.length ? `${timed.length} finished tasks` : "No finished tasks"} />
       </div>
 
@@ -102,19 +112,30 @@ export default function Overview() {
                 </div>
               ) : <p className="text-sm text-muted-foreground">Agents post here as they work.</p>}
             </div>
+            {!!cc?.sessions.length && (
+              <div className="mt-5 border-t pt-3">
+                <div className="mb-1 flex items-center justify-between"><p className="text-sm font-medium">Claude Code activity</p><Link href="/chat" className="text-sm font-medium hover:underline">Open chat</Link></div>
+                {cc.sessions.map((x) => (
+                  <Link key={x.id} href={`/chat?session=${x.id}`} className="flex items-center gap-3 border-t py-2 text-sm first-of-type:border-0 hover:underline">
+                    <MessageSquare className="size-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate">{x.title}</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">{ORIGIN[x.origin]} · {ago(x.updatedAt)}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
         <div className="grid min-w-0 content-start gap-6">
           <section className="rounded-2xl border bg-card p-5 shadow-xs">
             <div className="mb-2 flex items-center justify-between"><h3 className="font-semibold">Model router</h3><span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">Auto (lean)</span></div>
-            {[...new Set(["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", ...tasks.map((t) => t.model || "default")])].map((id) => {
-              const m = modelInfo(id, models), c = tasks.filter((t) => (t.model || "sonnet") === id).length;
+            {[...new Set(["claude-haiku-5-5", "claude-sonnet-5-5", "claude-opus-5-5", ...Object.keys(share)])].map((id) => {
+              const m = modelInfo(id, models), c = share[id] || 0;
               return (
                 <div key={id} className="flex items-center gap-3 border-t py-3 first-of-type:border-0">
                   <ProviderMark provider={m.provider} />
                   <div className="min-w-0 flex-1"><div className="flex items-center gap-1.5 text-sm font-semibold">{m.label}<span className={cn("size-1.5 rounded-full", TIER_DOT[m.tier])} /></div><div className="text-xs text-muted-foreground">{m.note}</div></div>
-                  <b className="text-sm">{tasks.length ? Math.round((c / tasks.length) * 100) : 0}%</b>
+                  <b className="text-sm">{shareTotal ? Math.round((c / shareTotal) * 100) : 0}%</b>
                 </div>
               );
             })}

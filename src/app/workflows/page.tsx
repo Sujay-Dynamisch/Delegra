@@ -32,7 +32,7 @@ function WorkflowsPage() {
   const params = useSearchParams();
   const workflows = useList<Wf>("workflows", project ? project.id : null).rows || [];
   const runs = useList<Run>("runs", project ? project.id : null).rows || [];
-  const agents = useList<Agent>("agents").rows;
+  const agents = useList<Agent>("agents", project?.id).rows;
   const made = useRef(false);
 
   const create = async () => {
