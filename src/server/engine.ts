@@ -1,6 +1,6 @@
 import "server-only";
 import type { Agent, FlowNode, Project, Run, Settings, Task, Update, Workflow } from "@/lib/types";
-import { runClaude } from "./claude";
+import { runAgent } from "./providers";
 import { HttpError, store } from "./store";
 
 export const DEFAULT_RULES = [
@@ -36,7 +36,7 @@ export function runTask(id: string) {
   const files = new Set(task.files || []);
   let tools = 0;
   const patch = (p: Partial<Task>) => store.update<Task>("tasks", id, p);
-  const proc = runClaude({
+  const proc = runAgent({
     prompt: `${brief(agent)}\n\nTask:\n${task.prompt}`, cwd: project.path, model: task.model, permissionMode: project.permissionMode,
     onEvent: (e) => {
       if (e.kind === "text") updates.push({ at: now(), text: e.text.slice(0, 300), kind: "text" });
@@ -109,7 +109,7 @@ export function runWorkflow(id: string, trigger: Run["trigger"] = "manual") {
         (input ? `\nInput from the previous step:\n${input.slice(0, 6000)}\n` : "") +
         `\nYour step:\n${ready.data.instruction || ready.data.label}\n\nReply in the shortest complete form. If you lack information, say UNKNOWN and what you need.`;
       try {
-        const proc = runClaude({ prompt, cwd: project.path, model: ready.data.model || agent?.model || "sonnet", permissionMode: ready.data.write ? project.permissionMode : "plan" });
+        const proc = runAgent({ prompt, cwd: project.path, model: ready.data.model || agent?.model || "sonnet", permissionMode: ready.data.write ? project.permissionMode : "plan" });
         current = proc;
         const r = await proc.done;
         tokens += r.tokens || 0; cost += r.costUsd || 0;
@@ -134,7 +134,7 @@ export function ask(projectId: string, prompt: string, model: Task["model"], age
   if (!project) throw new HttpError(400, "Pick a project first");
   const agent = agentId ? store.get<Agent>("agents", agentId) : null;
   let text = "";
-  return runClaude({
+  return runAgent({
     prompt: `${brief(agent)}\n\nBe concise. Never invent facts.\n\n${prompt}`, cwd: project.path, model, permissionMode: "plan",
     onEvent: (e) => { if (e.kind === "text") { text += (text ? "\n\n" : "") + e.text; onText?.(text); } },
   });

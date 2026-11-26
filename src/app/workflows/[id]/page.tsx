@@ -13,10 +13,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Field, NativeSelect, StatusPill } from "@/components/app/bits";
+import { Field, StatusPill } from "@/components/app/bits";
+import { AgentPicker, ModelPicker } from "@/components/app/pickers";
 import { KINDS, nodeTypes, type LoNode, type NodeData } from "@/components/flow/nodes";
 import { api, db, dur, fmtTokens, useDoc, useList } from "@/lib/client";
-import { MODELS, type Agent, type FlowNode, type Model, type Run, type Workflow } from "@/lib/types";
+import type { Agent, FlowNode, Model, Run, Workflow } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const toFlow = (n: FlowNode): LoNode => ({ id: n.id, type: "card", position: n.position, data: { ...n.data, kind: n.kind } });
@@ -165,15 +166,10 @@ function Editor({ id }: { id: string }) {
               {sel.data.kind === "agent" && (
                 <>
                   <Field label="Agent" hint="Its role, skills and instructions go into the prompt">
-                    <NativeSelect value={sel.data.agentId || ""} onChange={(e) => { const a = agents.find((x) => x.id === e.target.value); patch(sel.id, { agentId: e.target.value || undefined, ...(a ? { model: a.model } : {}) }); }}>
-                      <option value="">No agent</option>
-                      {agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                    </NativeSelect>
+                    <AgentPicker agents={agents} value={sel.data.agentId} onChange={(v) => { const a = agents.find((x) => x.id === v); patch(sel.id, { agentId: v || undefined, ...(a ? { model: a.model } : {}) }); }} />
                   </Field>
                   <Field label="Model">
-                    <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted p-1">
-                      {MODELS.map((m) => <button key={m} onClick={() => patch(sel.id, { model: m })} className={cn("rounded-md py-1.5 text-sm capitalize", (sel.data.model || "sonnet") === m && "bg-background font-semibold shadow-xs")}>{m}</button>)}
-                    </div>
+                    <ModelPicker value={sel.data.model} onChange={(m) => patch(sel.id, { model: m })} />
                   </Field>
                   <Field label="Instruction" hint="The previous node's output is added as input automatically"><Textarea rows={7} value={sel.data.instruction || ""} onChange={(e) => patch(sel.id, { instruction: e.target.value })} placeholder="What this step must do and return." /></Field>
                   <label className="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm">

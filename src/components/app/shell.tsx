@@ -24,10 +24,11 @@ const NAV = [
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const { projects, project, setProjectId, claude, setConnectOpen } = useApp();
+  const { projects, project, setProjectId, claude, providers, setConnectOpen } = useApp();
   const { resolvedTheme, setTheme } = useTheme();
   const active = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
-  const connected = !!claude?.loggedIn && claude.granted;
+  const live = (providers || []).filter((p) => p.signedIn && p.granted);
+  const connected = live.length > 0;
   // The workflow editor uses the full screen.
   const bare = /^\/workflows\/[^/]+$/.test(path);
 
@@ -54,8 +55,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <button onClick={() => setConnectOpen(true)} className="mt-auto flex items-center gap-3 rounded-xl border bg-background p-3 text-left text-sm transition-colors hover:bg-accent">
           <span className={cn("size-2.5 rounded-full", connected ? "bg-emerald-500" : "bg-amber-500")} />
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold">Claude Code{claude?.plan ? ` (${claude.plan[0].toUpperCase() + claude.plan.slice(1)})` : ""}</span>
-            <span className="block text-xs text-muted-foreground">{connected ? "Connected" : claude?.loggedIn ? "Needs permission" : "Not connected"}</span>
+            <span className="block font-semibold">{live.length ? live.map((p) => p.id === "claude" ? `Claude${claude?.plan ? " (" + claude.plan[0].toUpperCase() + claude.plan.slice(1) + ")" : ""}` : "Antigravity").join(" + ") : "AI providers"}</span>
+            <span className="block text-xs text-muted-foreground">{connected ? "Connected" : "Not connected"}</span>
           </span>
         </button>
       </aside>
@@ -77,7 +78,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             ) : <Link href="/projects" className="font-medium">Add a project</Link>}
           </div>
           <button onClick={() => setConnectOpen(true)} className={cn("hidden items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium sm:inline-flex", connected ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400")}>
-            <span className={cn("size-2 rounded-full", connected ? "bg-emerald-500" : "bg-amber-500")} />{connected ? "Connected" : "Connect Claude"}
+            <span className={cn("size-2 rounded-full", connected ? "bg-emerald-500" : "bg-amber-500")} />{connected ? "Connected" : "Connect AI"}
           </button>
           <Button variant="ghost" size="icon" aria-label="Toggle theme" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}>
             {resolvedTheme === "dark" ? <Sun /> : <Moon />}

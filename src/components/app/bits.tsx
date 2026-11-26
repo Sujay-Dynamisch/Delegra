@@ -1,6 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import type { Model } from "@/lib/types";
+import { modelInfo, ProviderMark, useModels } from "./pickers";
 import { Loader2 } from "lucide-react";
 
 const TONE: Record<string, string> = {
@@ -23,8 +24,8 @@ export function StatusPill({ status, className }: { status: string; className?: 
 export const MODEL_COLOR: Record<Model, string> = { haiku: "bg-emerald-500", sonnet: "bg-amber-500", opus: "bg-rose-500" };
 export const MODEL_NOTE: Record<Model, string> = { haiku: "Research, checks, simple edits", sonnet: "Features, fixes, reviews", opus: "Architecture, risky changes" };
 export function ModelTag({ model }: { model?: Model }) {
-  const m = model || "sonnet";
-  return <span className="inline-flex items-center gap-1.5 text-sm font-medium capitalize"><span className={cn("size-2 rounded-full", MODEL_COLOR[m])} />{m}</span>;
+  const m = modelInfo(model, useModels());
+  return <span className="inline-flex items-center gap-1.5 text-sm font-medium whitespace-nowrap"><ProviderMark provider={m.provider} className="size-4" />{m.label.replace(/^Claude /, "")}</span>;
 }
 export function PageHeader({ title, sub, children }: { title: string; sub?: string; children?: React.ReactNode }) {
   return (

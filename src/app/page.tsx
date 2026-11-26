@@ -5,13 +5,15 @@ import { useState } from "react";
 import { ArrowRight, CheckCircle2, Clock, Coins, FileText, FolderGit2, Layers, ListChecks, Workflow, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/components/app/project-context";
-import { Empty, MODEL_COLOR, MODEL_NOTE, ModelTag, PageHeader, Stat, StatusPill } from "@/components/app/bits";
+import { Empty, ModelTag, PageHeader, Stat, StatusPill } from "@/components/app/bits";
+import { modelInfo, ProviderMark, TIER_DOT, useModels } from "@/components/app/pickers";
 import { ago, dur, fmtTokens, useList } from "@/lib/client";
-import { MODELS, type Run, type Task, type Workflow as Wf } from "@/lib/types";
+import type { Run, Task, Workflow as Wf } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export default function Overview() {
-  const { project, claude, setConnectOpen } = useApp();
+  const { project, providers, setConnectOpen } = useApp();
+  const models = useModels();
   const router = useRouter();
   const [goal, setGoal] = useState("");
   const tasks = useList<Task>("tasks", project ? project.id : null).rows || [];
@@ -39,10 +41,10 @@ export default function Overview() {
   return (
     <>
       <PageHeader title="Lean orchestration" sub={`Multi-agent work in ${project.name}, routed to the cheapest model that can do each step.`} />
-      {!(claude?.loggedIn && claude.granted) && (
+      {providers && !providers.some((p) => p.signedIn && p.granted) && (
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
-          <span>Connect your Claude plan so agents can run in this project.</span>
-          <Button size="sm" onClick={() => setConnectOpen(true)}>Connect Claude</Button>
+          <span>Connect Claude Code or Antigravity so agents can run in this project.</span>
+          <Button size="sm" onClick={() => setConnectOpen(true)}>Connect AI</Button>
         </div>
       )}
       <form className="mb-6 flex flex-col gap-3 sm:flex-row" onSubmit={(e) => { e.preventDefault(); lean(); }}>
@@ -75,8 +77,8 @@ export default function Overview() {
                       <div key={s.id} className="flex items-center gap-2">
                         {i > 0 && <ArrowRight className="size-4 shrink-0 text-muted-foreground" />}
                         <div className={cn("flex min-w-40 items-center gap-3 rounded-xl border px-3 py-2.5", st === "running" && "border-blue-500 ring-3 ring-blue-500/15")}>
-                          <span className={cn("size-2 rounded-full", MODEL_COLOR[s.data.model || "sonnet"])} />
-                          <div className="min-w-0"><div className="truncate text-sm font-semibold">{s.data.label}</div><div className="text-xs text-muted-foreground capitalize">{s.data.model || "sonnet"}</div></div>
+                          <ProviderMark provider={modelInfo(s.data.model, models).provider} className="size-4" />
+                          <div className="min-w-0"><div className="truncate text-sm font-semibold">{s.data.label}</div><div className="text-xs text-muted-foreground">{modelInfo(s.data.model, models).label}</div></div>
                           {st && <StatusPill status={st} className="ml-auto px-1.5" />}
                         </div>
                       </div>
@@ -106,12 +108,12 @@ export default function Overview() {
         <div className="grid min-w-0 content-start gap-6">
           <section className="rounded-2xl border bg-card p-5 shadow-xs">
             <div className="mb-2 flex items-center justify-between"><h3 className="font-semibold">Model router</h3><span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium">Auto (lean)</span></div>
-            {MODELS.map((m) => {
-              const c = tasks.filter((t) => t.model === m).length;
+            {[...new Set(["haiku", "sonnet", "opus", ...tasks.map((t) => t.model || "sonnet")])].map((id) => {
+              const m = modelInfo(id, models), c = tasks.filter((t) => (t.model || "sonnet") === id).length;
               return (
-                <div key={m} className="flex items-center gap-3 border-t py-3 first-of-type:border-0">
-                  <span className={cn("size-2.5 rounded-full", MODEL_COLOR[m])} />
-                  <div className="min-w-0 flex-1"><div className="text-sm font-semibold capitalize">{m}</div><div className="text-xs text-muted-foreground">{MODEL_NOTE[m]}</div></div>
+                <div key={id} className="flex items-center gap-3 border-t py-3 first-of-type:border-0">
+                  <ProviderMark provider={m.provider} />
+                  <div className="min-w-0 flex-1"><div className="flex items-center gap-1.5 text-sm font-semibold">{m.label}<span className={cn("size-1.5 rounded-full", TIER_DOT[m.tier])} /></div><div className="text-xs text-muted-foreground">{m.note}</div></div>
                   <b className="text-sm">{tasks.length ? Math.round((c / tasks.length) * 100) : 0}%</b>
                 </div>
               );

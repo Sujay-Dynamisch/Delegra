@@ -6,9 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useApp } from "@/components/app/project-context";
-import { Empty, NativeSelect, PageHeader } from "@/components/app/bits";
+import { Empty, PageHeader } from "@/components/app/bits";
+import { AgentPicker, ModelPicker } from "@/components/app/pickers";
 import { fmtTokens, streamChat, useList } from "@/lib/client";
-import { MODELS, type Agent, type Model } from "@/lib/types";
+import type { Agent, Model } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Msg = { role: "user" | "assistant"; text: string; who?: string; tokens?: number };
@@ -59,10 +60,8 @@ function ChatPage() {
   return (
     <>
       <PageHeader title="Chat" sub={`Ask about ${project.name}. Answers are read-only: Claude can read the project but not change it here.`}>
-        <NativeSelect aria-label="Agent" className="w-auto" value={agentId} onChange={(e) => setAgentId(e.target.value)}>
-          <option value="">No agent</option>{agents.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </NativeSelect>
-        {!agent && <NativeSelect aria-label="Model" className="w-auto" value={model} onChange={(e) => setModel(e.target.value as Model)}>{MODELS.map((m) => <option key={m} value={m}>{m[0].toUpperCase() + m.slice(1)}</option>)}</NativeSelect>}
+        <AgentPicker agents={agents} value={agentId} onChange={setAgentId} className="w-60" />
+        {!agent && <ModelPicker value={model} onChange={setModel} className="w-56" />}
         {!!msgs.length && <Button variant="outline" onClick={() => setMsgs([])}><Trash2 />Clear</Button>}
       </PageHeader>
       <section className="flex h-[calc(100dvh-230px)] min-h-[420px] flex-col rounded-2xl border bg-card shadow-xs">

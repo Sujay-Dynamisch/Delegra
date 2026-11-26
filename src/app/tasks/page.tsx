@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useApp } from "@/components/app/project-context";
-import { Empty, Field, ModelTag, NativeSelect, PageHeader, StatusPill } from "@/components/app/bits";
+import { Empty, Field, ModelTag, PageHeader, StatusPill } from "@/components/app/bits";
+import { AgentPicker, ModelPicker } from "@/components/app/pickers";
 import { ago, api, db, dur, fmtTokens, useList } from "@/lib/client";
-import { MODELS, type Agent, type Model, type Task } from "@/lib/types";
+import type { Agent, Model, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const FILTERS = [["all", "All"], ["working", "Working"], ["queued", "Queued"], ["blocked", "Blocked"], ["done", "Completed"]] as const;
@@ -43,7 +44,7 @@ function TasksPage() {
 
   return (
     <>
-      <PageHeader title="Tasks" sub="Each task is one Claude Code agent working in this project.">
+      <PageHeader title="Tasks" sub="Each task is one AI agent (Claude Code or Antigravity) working in this project.">
         {!form && <Button onClick={() => setForm({ title: "", prompt: "", model: "sonnet", agentId: "" })}><Plus />New task</Button>}
       </PageHeader>
       {form && (
@@ -52,15 +53,10 @@ function TasksPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <Field label="Title"><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Fix the login crash" autoFocus /></Field>
             <Field label="Agent" hint="Brings its role, skills and instructions">
-              <NativeSelect value={form.agentId} onChange={(e) => setForm({ ...form, agentId: e.target.value })}>
-                <option value="">No agent</option>
-                {agents.map((a) => <option key={a.id} value={a.id}>{a.name} · {a.model}</option>)}
-              </NativeSelect>
+              <AgentPicker agents={agents} value={form.agentId} onChange={(agentId) => setForm({ ...form, agentId })} />
             </Field>
             <Field label="Model">
-              <NativeSelect value={agents.find((a) => a.id === form.agentId)?.model || form.model} disabled={!!form.agentId} onChange={(e) => setForm({ ...form, model: e.target.value as Model })}>
-                {MODELS.map((m) => <option key={m} value={m}>{m[0].toUpperCase() + m.slice(1)}</option>)}
-              </NativeSelect>
+              <ModelPicker value={agents.find((a) => a.id === form.agentId)?.model || form.model} disabled={!!form.agentId} onChange={(model) => setForm({ ...form, model })} />
             </Field>
             <Field label="Instructions" className="md:col-span-3"><Textarea value={form.prompt} onChange={(e) => setForm({ ...form, prompt: e.target.value })} rows={4} placeholder="What the agent should do, which files it owns, and how to check it worked." /></Field>
           </div>

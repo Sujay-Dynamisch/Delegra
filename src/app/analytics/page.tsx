@@ -1,20 +1,22 @@
 "use client";
 import { BadgeCheck, ChartNoAxesColumn, Clock, Coins, Play } from "lucide-react";
 import { useApp } from "@/components/app/project-context";
-import { Empty, MODEL_COLOR, PageHeader, Stat } from "@/components/app/bits";
+import { Empty, PageHeader, Stat } from "@/components/app/bits";
+import { modelInfo, useModels } from "@/components/app/pickers";
 import { dur, fmtTokens, useList } from "@/lib/client";
-import { MODELS, type Run, type Task } from "@/lib/types";
+import type { Run, Task } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const HEX: Record<string, string> = { haiku: "#10b981", sonnet: "#f59e0b", opus: "#f43f5e" };
+const PALETTE = ["#10b981", "#f59e0b", "#f43f5e", "#0ea5e9", "#8b5cf6", "#64748b"];
 
 export default function Analytics() {
   const { project } = useApp();
+  const models = useModels();
   const tasks = useList<Task>("tasks", project ? project.id : null).rows || [];
   const runs = useList<Run>("runs", project ? project.id : null).rows || [];
   if (!project) return <div className="rounded-2xl border bg-card"><Empty icon={ChartNoAxesColumn} title="Pick or connect a project first." /></div>;
 
-  const byModel = MODELS.map((m) => ({ m, v: tasks.filter((t) => t.model === m).reduce((a, t) => a + (t.tokens || 0), 0) }));
+  const byModel = [...new Set(tasks.map((t) => t.model || "sonnet"))].map((m, i) => ({ m, color: PALETTE[i % PALETTE.length], label: modelInfo(m, models).label, v: tasks.filter((t) => (t.model || "sonnet") === m).reduce((a, t) => a + (t.tokens || 0), 0) }));
   const total = byModel.reduce((a, x) => a + x.v, 0);
   const days = [...Array(7)].map((_, i) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - 6 + i); return d; });
   const perDay = days.map((d) => [...tasks.map((t) => t.startedAt), ...runs.map((r) => r.startedAt)].filter((s) => s && new Date(s) >= d && new Date(s).getTime() < d.getTime() + 864e5).length);
@@ -44,12 +46,12 @@ export default function Analytics() {
           {!total ? <p className="text-sm text-muted-foreground">No finished tasks yet.</p> : (
             <div className="flex flex-wrap items-center gap-8">
               <svg width="160" height="160" viewBox="0 0 160 160" role="img" aria-label={byModel.map((b) => `${b.m} ${b.v}`).join(", ")}>
-                {arcs.map((b) => <circle key={b.m} cx="80" cy="80" r={R} fill="none" stroke={HEX[b.m]} strokeWidth="22" strokeDasharray={`${b.len} ${C - b.len}`} strokeDashoffset={-b.off} transform="rotate(-90 80 80)" />)}
+                {arcs.map((b) => <circle key={b.m} cx="80" cy="80" r={R} fill="none" stroke={b.color} strokeWidth="22" strokeDasharray={`${b.len} ${C - b.len}`} strokeDashoffset={-b.off} transform="rotate(-90 80 80)" />)}
                 <text x="80" y="78" textAnchor="middle" className="fill-foreground text-xl font-semibold">{fmtTokens(total)}</text>
                 <text x="80" y="98" textAnchor="middle" className="fill-muted-foreground text-xs">tokens</text>
               </svg>
               <div className="grid min-w-40 gap-3">
-                {byModel.map((b) => <div key={b.m} className="flex items-center gap-3 text-sm"><span className={cn("size-2.5 rounded-full", MODEL_COLOR[b.m])} /><span className="capitalize">{b.m}</span><b className="ml-auto">{Math.round((b.v / total) * 100)}%</b></div>)}
+                {byModel.map((b) => <div key={b.m} className="flex items-center gap-3 text-sm"><span className="size-2.5 rounded-full" style={{ background: b.color }} /><span>{b.label}</span><b className="ml-auto">{Math.round((b.v / total) * 100)}%</b></div>)}
               </div>
             </div>
           )}

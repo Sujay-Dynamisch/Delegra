@@ -54,7 +54,7 @@ export function FlowCard({ data, selected }: NodeProps<LoNode>) {
         <RunBadge run={data.run} />
         {data.kind !== "trigger" && <Handle type="target" position={Position.Left} className={handle} />}
         <span className={cn("grid size-12 place-items-center rounded-xl", k.tint)}><Icon className="size-6" /></span>
-        {data.kind === "agent" && <span className={cn("absolute right-2 bottom-2 size-2.5 rounded-full ring-2 ring-card", MODEL_RING[data.model || "sonnet"])} title={data.model} />}
+        {data.kind === "agent" && <span className={cn("absolute right-2 bottom-2 size-2.5 rounded-full ring-2 ring-card", String(data.model).startsWith("agy:") ? "bg-sky-500" : MODEL_RING[data.model || "sonnet"] || "bg-amber-500")} title={data.model} />}
         {data.kind === "condition" ? (
           <>
             <Handle type="source" id="true" position={Position.Right} style={{ top: "32%" }} className={cn(handle, "!bg-emerald-500")} />
@@ -67,7 +67,7 @@ export function FlowCard({ data, selected }: NodeProps<LoNode>) {
       <div className="w-[140px] text-center leading-tight">
         <div className="truncate text-[13px] font-semibold">{data.label}</div>
         <div className="truncate text-[11px] text-muted-foreground">
-          {data.kind === "agent" ? `${data.agentName || "No agent"} · ${data.model || "sonnet"}` : data.kind === "condition" ? `contains “${data.contains || "…"}”` : k.label}
+          {data.kind === "agent" ? `${data.agentName || "No agent"} · ${String(data.model || "sonnet").replace(/^agy:/, "").replace(/^gemini-/, "gemini ")}` : data.kind === "condition" ? `contains “${data.contains || "…"}”` : k.label}
         </div>
       </div>
     </div>
