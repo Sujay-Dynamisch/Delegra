@@ -46,11 +46,14 @@ export type ClaudeEvent = { kind: "text"; text: string } | { kind: "tool"; name:
 export type ClaudeResult = { ok: boolean; text: string; sessionId: string | null; tokens: number | null; costUsd: number | null; durationMs: number | null; error: string | null };
 
 export function runClaude(opts: { prompt: string; cwd: string; model?: Model; effort?: Effort; permissionMode?: PermissionMode; resume?: string; onEvent?: (e: ClaudeEvent) => void }) {
-  if (!store.get<{ granted: boolean }>("settings", "claude")?.granted) throw new Error("Connect Claude first: Settings → Claude connection.");
+  if (!store.get<{ granted: boolean }>("settings", "claude")?.granted) throw new Error("Connect Claude first: Settings → Connections → Allow.");
   const args = ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", opts.permissionMode || "acceptEdits"];
   // "default" lets Claude Code use the account's recommended model.
   if (opts.model && opts.model !== "default") args.push("--model", opts.model);
   if (opts.effort) args.push("--effort", opts.effort);
+  // Agents don't need the user's MCP servers or skills; skipping them saves ~9K tokens per call.
+  // (--bare would trim more, but it only accepts API keys, which would break plan sign-in.)
+  args.push("--strict-mcp-config", "--disable-slash-commands");
   if (opts.resume) args.push("--resume", opts.resume);
   // shell is needed on Windows to resolve claude.cmd; the prompt goes through stdin, never the command line.
   const child = spawn("claude", args, { cwd: opts.cwd, env: cleanEnv(), shell: WIN, windowsHide: true });

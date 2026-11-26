@@ -205,6 +205,7 @@ export const SECTIONS: Section[] = [
       "Give tasks exact file names and goals so agents don't search the whole repository.",
       "Use read-only steps (Can edit files off) for planning and review.",
       "Leave effort on Auto, and raise it only on steps that need it.",
+      "Delegra already starts Claude agents without your MCP servers and skills, which saves about 9K tokens on every call.",
       "In workflows, pass work forward step by step instead of giving every step the full goal again. The app already sends only the previous step's output.",
     ] },
   ] },
