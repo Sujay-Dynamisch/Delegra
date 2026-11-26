@@ -6,12 +6,13 @@ import { cn } from "@/lib/utils";
  */
 export function DelegraMark({ className, mono }: { className?: string; mono?: boolean }) {
   return (
-    <svg viewBox="0 0 40 48" className={cn("size-8", className)} aria-hidden="true" fill="none" strokeLinecap="round">
-      <path d="M6 5V43" stroke="var(--brand-ink, #0b0b12)" strokeWidth="7" />
-      <path d="M6 5a19 19 0 0 1 0 38" stroke="var(--brand-ink, #0b0b12)" strokeWidth="7" />
-      <path d="M7 14.5a9.5 9.5 0 0 1 0 19" stroke="var(--background, #fff)" strokeWidth="9" />
-      <path d="M7 14.5a9.5 9.5 0 0 1 0 19" stroke={mono ? "currentColor" : "var(--brand-violet, #4f3bf5)"} strokeWidth="5.5" />
-      <circle cx="10" cy="24" r="3.6" fill={mono ? "currentColor" : "var(--brand-violet, #4f3bf5)"} />
+    <svg viewBox="3 0 108 190" className={cn("h-8 w-auto", className)} aria-hidden="true" fill="none" strokeLinecap="round">
+      {/* Outer D: stem with rounded ends, and the bowl. */}
+      <path d="M15 12V178" stroke="var(--brand-ink, #0b0b12)" strokeWidth="21" />
+      <path d="M15 12A83 83 0 0 1 15 178" stroke="var(--brand-ink, #0b0b12)" strokeWidth="21" />
+      {/* Inner lane: short leads from the stem, then the arc; the bowl's inner edge leaves the gap. */}
+      <path d="M15 58H30A37 37 0 0 1 30 132H15" stroke={mono ? "currentColor" : "var(--brand-violet, #4f3bf5)"} strokeWidth="23" strokeLinejoin="round" />
+      <circle cx="33" cy="95" r="14" fill={mono ? "currentColor" : "var(--brand-violet, #4f3bf5)"} />
     </svg>
   );
 }
@@ -34,7 +35,9 @@ export function DelegraIcon({ className }: { className?: string }) {
 export function DelegraLogo({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
-      <DelegraIcon />
+      {/* Light theme: the ink-and-violet mark. Dark theme: the violet app icon. */}
+      <DelegraMark className="h-9 dark:hidden" />
+      <DelegraIcon className="hidden dark:grid" />
       <span className="font-brand text-[22px] leading-none font-semibold tracking-[-0.045em] lowercase">delegra</span>
     </span>
   );
