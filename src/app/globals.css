@@ -141,3 +141,12 @@
   -ms-overflow-style: none;
   &::-webkit-scrollbar { display: none; }
 }
+
+/* Scrollbars stay hidden and appear (thin, violet) only while that element is scrolling. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+[data-scrolling] {
+  scrollbar-color: color-mix(in oklab, var(--primary) 45%, transparent) transparent;
+}

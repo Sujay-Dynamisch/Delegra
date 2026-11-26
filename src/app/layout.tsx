@@ -5,6 +5,7 @@ import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { AppProvider } from "@/components/app/project-context";
 import { Shell } from "@/components/app/shell";
+import { ScrollReveal } from "@/components/app/scroll-reveal";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </AppProvider>
           </Suspense>
           <Toaster richColors position="bottom-right" />
+          <ScrollReveal />
         </ThemeProvider>
       </body>
     </html>
