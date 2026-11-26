@@ -1,6 +1,6 @@
 "use client";
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import { Bot, Check, GitBranch, Loader2, Merge, MousePointerClick, StickyNote, X } from "lucide-react";
+import { Bot, Check, GitBranch, Hand, Loader2, Merge, MousePointerClick, Pause, StickyNote, X } from "lucide-react";
 import type { FlowNode, NodeRun } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ export const KINDS = {
   trigger: { label: "Manual trigger", icon: MousePointerClick, tint: "text-orange-600 bg-orange-500/10", desc: "Starts the workflow when you click Execute" },
   agent: { label: "Claude agent", icon: Bot, tint: "text-violet-600 bg-violet-500/10", desc: "Runs one Claude Code step with an agent and model" },
   condition: { label: "If", icon: GitBranch, tint: "text-sky-600 bg-sky-500/10", desc: "Routes on whether the input contains some text" },
+  approval: { label: "Ask me (approval)", icon: Hand, tint: "text-rose-600 bg-rose-500/10", desc: "Pauses the run until you approve or reject; your note goes to the next steps" },
   merge: { label: "Merge", icon: Merge, tint: "text-emerald-600 bg-emerald-500/10", desc: "Waits for its inputs and joins their outputs" },
   note: { label: "Sticky note", icon: StickyNote, tint: "text-amber-600 bg-amber-500/10", desc: "A note on the canvas; never runs" },
 } as const;
@@ -18,10 +19,10 @@ export const KINDS = {
 
 function RunBadge({ run }: { run?: NodeRun }) {
   if (!run) return null;
-  const cls = { ok: "bg-emerald-500", failed: "bg-red-500", running: "bg-blue-500", skipped: "bg-muted-foreground" }[run.status];
+  const cls = { ok: "bg-emerald-500", failed: "bg-red-500", running: "bg-blue-500", waiting: "bg-amber-500", skipped: "bg-muted-foreground" }[run.status];
   return (
     <span className={cn("absolute -top-2 -right-2 z-10 grid size-5 place-items-center rounded-full text-white shadow ring-2 ring-background", cls)}>
-      {run.status === "ok" ? <Check className="size-3" strokeWidth={3} /> : run.status === "failed" ? <X className="size-3" strokeWidth={3} /> : run.status === "running" ? <Loader2 className="size-3 animate-spin" /> : null}
+      {run.status === "ok" ? <Check className="size-3" strokeWidth={3} /> : run.status === "failed" ? <X className="size-3" strokeWidth={3} /> : run.status === "running" ? <Loader2 className="size-3 animate-spin" /> : run.status === "waiting" ? <Pause className="size-3" strokeWidth={3} /> : null}
     </span>
   );
 }
@@ -49,6 +50,7 @@ export function FlowCard({ data, selected }: NodeProps<LoNode>) {
         running && "border-blue-500 shadow-[0_0_0_6px_rgba(59,130,246,0.15)]",
         data.run?.status === "ok" && !selected && "border-emerald-500/70",
         data.run?.status === "failed" && "border-red-500",
+        data.run?.status === "waiting" && "border-amber-500 shadow-[0_0_0_6px_rgba(245,158,11,0.18)]",
       )}>
         <RunBadge run={data.run} />
         {data.kind !== "trigger" && <Handle type="target" position={Position.Left} className={handle} />}

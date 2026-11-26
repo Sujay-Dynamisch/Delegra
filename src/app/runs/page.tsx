@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, History, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/components/app/project-context";
 import { Empty, PageHeader, StatusPill } from "@/components/app/bits";
+import { ApprovalPanel } from "@/components/app/approval";
 import { api, dur, fmtTokens, useList } from "@/lib/client";
 import type { Run, Workflow } from "@/lib/types";
 
@@ -17,6 +18,10 @@ export default function Runs() {
   return (
     <>
       <PageHeader title="Executions" sub="Every workflow run in this project, newest first. Open one to read each node's output." />
+      {runs.filter((r) => r.status === "running" && Object.values(r.nodes || {}).some((n) => n.status === "waiting")).map((r) => {
+        const wf = workflows.find((w) => w.id === r.workflowId);
+        return <div key={r.id} className="mb-4"><ApprovalPanel run={r} label={(nid) => `${r.workflowName} · ${wf?.nodes.find((x) => x.id === nid)?.data.label || nid}`} /></div>;
+      })}
       <section className="overflow-hidden rounded-2xl border bg-card shadow-xs">
         {!runs.length ? <Empty icon={History} title="No executions yet. Open a workflow and click Execute." /> : (
           <div className="overflow-x-auto">
@@ -46,7 +51,7 @@ export default function Runs() {
                           const n = r.nodes[nid], label = wf?.nodes.find((x) => x.id === nid)?.data.label || nid;
                           return (
                             <details key={nid} open={n.status === "failed"} className="rounded-xl border bg-background p-3">
-                              <summary className="flex cursor-pointer items-center gap-3 text-sm font-medium">{label}<StatusPill status={n.status} />{n.tokens != null && <span className="text-xs text-muted-foreground">{fmtTokens(n.tokens)} tokens</span>}</summary>
+                              <summary className="flex cursor-pointer items-center gap-3 text-sm font-medium">{label}<StatusPill status={n.status} />{n.startedAt && n.finishedAt && <span className="text-xs text-muted-foreground">{dur(new Date(n.finishedAt).getTime() - new Date(n.startedAt).getTime())}</span>}{n.tokens != null && <span className="text-xs text-muted-foreground">{fmtTokens(n.tokens)} tokens</span>}</summary>
                               {n.output && <pre className="mt-2 max-h-72 overflow-auto font-mono text-xs whitespace-pre-wrap">{n.output}</pre>}
                             </details>
                           );

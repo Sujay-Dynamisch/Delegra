@@ -14,6 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Field, StatusPill } from "@/components/app/bits";
+import { ApprovalPanel } from "@/components/app/approval";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { AgentPicker, EffortPicker, ModelPicker } from "@/components/app/pickers";
 import { KINDS, nodeTypes, type LoNode, type NodeData } from "@/components/flow/nodes";
 import { api, db, dur, fmtTokens, useDoc, useList } from "@/lib/client";
@@ -36,6 +38,8 @@ function Editor({ id }: { id: string }) {
   const [nodes, setNodes, onNodesChange] = useNodesState<LoNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [name, setName] = useState("");
+  const [meta, setMeta] = useState<{ description: string; askInput: string }>({ description: "", askInput: "" });
+  const [ask, setAsk] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [palette, setPalette] = useState(false);
@@ -50,6 +54,9 @@ function Editor({ id }: { id: string }) {
     if (!wf || loaded.current) return;
     loaded.current = true;
     setName(wf.name);
+    setMeta({ description: wf.description || "", askInput: wf.askInput || "" });
+    // Opened from the list's Run button: ask the run's question right away.
+    if (wf.askInput && new URLSearchParams(window.location.search).get("run")) setAsk("");
     setNodes(wf.nodes.map(toFlow));
     setEdges(wf.edges.map((e) => ({ ...e, style: edgeStyle })));
   }, [wf, setNodes, setEdges]);
@@ -62,18 +69,20 @@ function Editor({ id }: { id: string }) {
 
   const save = useCallback(async () => {
     try {
-      await db.update("workflows", id, { name: name.trim() || "Untitled workflow", nodes: nodes.map(fromFlow), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? null })) });
+      await db.update("workflows", id, { name: name.trim() || "Untitled workflow", description: meta.description, askInput: meta.askInput.trim() || null, nodes: nodes.map(fromFlow), edges: edges.map((e) => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle ?? null })) });
       setDirty(false); toast.success("Saved");
     } catch (e) { toast.error((e as Error).message); }
-  }, [id, name, nodes, edges]);
+  }, [id, name, meta, nodes, edges]);
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === "s") { e.preventDefault(); save(); } };
     window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
   }, [save]);
 
-  const execute = async () => {
+  const execute = async (input?: string) => {
+    // A workflow with a question asks it first; the answer becomes this run's goal.
+    if (meta.askInput.trim() && input === undefined) { setAsk(""); return; }
     if (dirty) await save();
-    try { await api("/api/run", { body: { action: "workflow", id } }); setOutputOpen(true); } catch (e) { toast.error((e as Error).message); }
+    try { await api("/api/run", { body: { action: "workflow", id, input } }); setOutputOpen(true); setAsk(null); } catch (e) { toast.error((e as Error).message); }
   };
   const onConnect = useCallback((c: Connection) => { setEdges((es) => addEdge({ ...c, id: `e${Date.now()}`, style: edgeStyle }, es)); setDirty(true); }, [setEdges]);
 
@@ -105,7 +114,7 @@ function Editor({ id }: { id: string }) {
           <Button variant="outline" size="sm" onClick={save} disabled={!dirty}><Save />Save</Button>
           {run?.status === "running"
             ? <Button size="sm" variant="destructive" onClick={() => api("/api/run", { body: { action: "stop", id: run.id } })}><Square />Stop</Button>
-            : <Button size="sm" onClick={execute} className="bg-orange-600 text-white hover:bg-orange-600/90"><Play />Execute workflow</Button>}
+            : <Button size="sm" onClick={() => execute()} className="bg-orange-600 text-white hover:bg-orange-600/90"><Play />Execute workflow</Button>}
         </div>
       </div>
 
@@ -173,6 +182,9 @@ function Editor({ id }: { id: string }) {
                   </Field>
                   <Field label="Effort"><EffortPicker value={sel.data.effort} onChange={(effort) => patch(sel.id, { effort })} /></Field>
                   <Field label="Instruction" hint="The previous node's output is added as input automatically"><Textarea rows={7} value={sel.data.instruction || ""} onChange={(e) => patch(sel.id, { instruction: e.target.value })} placeholder="What this step must do and return." /></Field>
+                  <Field label="Allowed tools" hint="One per line. Pre-approved for this step only, e.g. Bash(npm test:*), WebSearch">
+                    <Textarea rows={3} className="font-mono text-xs" value={(sel.data.tools || []).join("\n")} onChange={(e) => patch(sel.id, { tools: e.target.value.split("\n").map((t) => t.trim()).filter(Boolean) })} placeholder={"Bash(npm test:*)\nWebSearch"} />
+                  </Field>
                   <label className="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm">
                     <span><b className="block font-medium">Can edit files</b><span className="text-xs text-muted-foreground">Off = read-only (plan mode). On = the project&apos;s access level.</span></span>
                     <Switch checked={!!sel.data.write} onCheckedChange={(v) => patch(sel.id, { write: !!v })} />
@@ -180,6 +192,13 @@ function Editor({ id }: { id: string }) {
                 </>
               )}
               {sel.data.kind === "condition" && <Field label="Input contains" hint="True branch if the input contains this text (case-insensitive)"><Input value={sel.data.contains || ""} onChange={(e) => patch(sel.id, { contains: e.target.value })} placeholder="PASS" /></Field>}
+              {sel.data.kind === "trigger" && (
+                <>
+                  <Field label="Workflow goal" hint="Given to every agent step"><Textarea rows={4} value={meta.description} onChange={(e) => { setMeta({ ...meta, description: e.target.value }); setDirty(true); }} /></Field>
+                  <Field label="Ask when run" hint="Optional. Execute asks this question; the answer becomes the run's topic"><Input value={meta.askInput} onChange={(e) => { setMeta({ ...meta, askInput: e.target.value }); setDirty(true); }} placeholder="Which feature should the agents build?" /></Field>
+                </>
+              )}
+              {sel.data.kind === "approval" && <Field label="What you're approving" hint="Shown on the canvas; the previous step's output is shown when the run pauses"><Textarea rows={3} value={sel.data.instruction || ""} onChange={(e) => patch(sel.id, { instruction: e.target.value })} /></Field>}
               {sel.data.kind === "note" && <Field label="Note"><Textarea rows={6} value={sel.data.instruction || ""} onChange={(e) => patch(sel.id, { instruction: e.target.value })} /></Field>}
               {run?.nodes?.[sel.id]?.output && (
                 <div className="grid gap-1.5">
@@ -193,6 +212,17 @@ function Editor({ id }: { id: string }) {
         )}
       </div>
 
+      {run?.status === "running" && Object.values(run.nodes || {}).some((n) => n.status === "waiting") && (
+        <div className="border-t bg-background p-3"><ApprovalPanel run={run} label={(nid) => nodes.find((n) => n.id === nid)?.data.label || nid} /></div>
+      )}
+      <Dialog open={ask !== null} onOpenChange={(o) => !o && setAsk(null)}>
+        <DialogContent>
+          <DialogTitle>{meta.askInput}</DialogTitle>
+          <DialogDescription>This becomes the topic for this run. Be specific: name screens, files or constraints if you know them.</DialogDescription>
+          <Textarea rows={5} autoFocus value={ask || ""} onChange={(e) => setAsk(e.target.value)} />
+          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setAsk(null)}>Cancel</Button><Button disabled={!ask?.trim()} onClick={() => execute(ask || "")}><Play />Execute</Button></div>
+        </DialogContent>
+      </Dialog>
       {/* execution output */}
       {run && (
         <div className="border-t bg-background">
@@ -206,6 +236,7 @@ function Editor({ id }: { id: string }) {
               {nodes.filter((n) => run.nodes[n.id]).map((n) => (
                 <button key={n.id} onClick={() => setSelected(n.id)} className="w-64 shrink-0 rounded-xl border p-3 text-left hover:bg-muted/50">
                   <div className="mb-1 flex items-center gap-2"><span className="truncate text-sm font-semibold">{n.data.label}</span><StatusPill status={run.nodes[n.id].status} className="ml-auto" /></div>
+                  {(run.nodes[n.id].tokens != null || run.nodes[n.id].finishedAt) && <p className="mb-1 text-[11px] text-muted-foreground">{run.nodes[n.id].startedAt && run.nodes[n.id].finishedAt ? dur(new Date(run.nodes[n.id].finishedAt!).getTime() - new Date(run.nodes[n.id].startedAt!).getTime()) : ""}{run.nodes[n.id].tokens != null ? ` · ${fmtTokens(run.nodes[n.id].tokens)} tokens` : ""}</p>}
                   <p className="line-clamp-4 font-mono text-[11px] text-muted-foreground">{run.nodes[n.id].output || "…"}</p>
                 </button>
               ))}

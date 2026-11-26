@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import type { Model } from "@/lib/types";
 import { modelInfo, ProviderMark, useModels } from "./pickers";
@@ -7,11 +8,11 @@ import { Loader2 } from "lucide-react";
 const TONE: Record<string, string> = {
   done: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400", ok: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
   working: "bg-blue-500/10 text-blue-700 dark:text-blue-400", running: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  queued: "bg-amber-500/10 text-amber-700 dark:text-amber-400", skipped: "bg-muted text-muted-foreground", stopped: "bg-muted text-muted-foreground",
+  queued: "bg-amber-500/10 text-amber-700 dark:text-amber-400", waiting: "bg-amber-500/15 text-amber-700 dark:text-amber-400", skipped: "bg-muted text-muted-foreground", stopped: "bg-muted text-muted-foreground",
   blocked: "bg-red-500/10 text-red-700 dark:text-red-400", failed: "bg-red-500/10 text-red-700 dark:text-red-400",
 };
-const DOT: Record<string, string> = { done: "bg-emerald-500", ok: "bg-emerald-500", working: "bg-blue-500", running: "bg-blue-500", queued: "bg-amber-500", blocked: "bg-red-500", failed: "bg-red-500" };
-const LABEL: Record<string, string> = { ok: "Completed", done: "Done", working: "Working", running: "Running", queued: "Queued", blocked: "Blocked", failed: "Failed", skipped: "Skipped", stopped: "Stopped" };
+const DOT: Record<string, string> = { done: "bg-emerald-500", ok: "bg-emerald-500", working: "bg-blue-500", running: "bg-blue-500", queued: "bg-amber-500", waiting: "bg-amber-500", blocked: "bg-red-500", failed: "bg-red-500" };
+const LABEL: Record<string, string> = { ok: "Completed", done: "Done", working: "Working", running: "Running", queued: "Queued", waiting: "Waiting for you", blocked: "Blocked", failed: "Failed", skipped: "Skipped", stopped: "Stopped" };
 
 export function StatusPill({ status, className }: { status: string; className?: string }) {
   return (
@@ -59,15 +60,16 @@ export function Field({ label, hint, children, className }: { label: string; hin
     </label>
   );
 }
-export function Stat({ icon: Icon, value, label, sub }: { icon: React.ElementType; value: React.ReactNode; label: string; sub?: string }) {
+export function Stat({ icon: Icon, value, label, sub, href }: { icon: React.ElementType; value: React.ReactNode; label: string; sub?: string; href?: string }) {
+  const Box = href ? Link : "div";
   return (
-    <div className="flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-xs">
+    <Box href={href as string} className={cn("flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-xs", href && "transition-colors hover:border-primary/40")}>
       <div className="grid size-11 shrink-0 place-items-center rounded-full bg-muted"><Icon className="size-5" /></div>
       <div className="min-w-0">
         <div className="text-2xl leading-tight font-semibold tracking-tight">{value}</div>
         <div className="text-sm text-foreground/80">{label}</div>
         {sub && <div className="text-xs text-muted-foreground">{sub}</div>}
       </div>
-    </div>
+    </Box>
   );
 }

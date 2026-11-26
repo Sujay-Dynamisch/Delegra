@@ -22,14 +22,21 @@ export type Task = Row & {
 };
 
 /** n8n-style workflow graph. */
-export type NodeKind = "trigger" | "agent" | "condition" | "merge" | "note";
-export type FlowNode = { id: string; kind: NodeKind; position: { x: number; y: number }; data: { label: string; agentId?: string; model?: Model; effort?: Effort; instruction?: string; contains?: string; write?: boolean } };
+/** approval: pauses the run and waits for you to approve (with an optional note) or reject. */
+export type NodeKind = "trigger" | "agent" | "condition" | "merge" | "note" | "approval";
+export type FlowNode = { id: string; kind: NodeKind; position: { x: number; y: number }; data: { label: string; agentId?: string; model?: Model; effort?: Effort; instruction?: string; contains?: string; write?: boolean;
+  /** Claude Code tools this step may use without asking, e.g. "Bash(npm test:*)", "WebSearch". */
+  tools?: string[] } };
 export type FlowEdge = { id: string; source: string; target: string; sourceHandle?: string | null };
-export type Workflow = Row & { projectId: string; name: string; description?: string; nodes: FlowNode[]; edges: FlowEdge[]; active?: boolean; schedule?: string | null };
-export type NodeRun = { status: "running" | "ok" | "failed" | "skipped"; output?: string; tokens?: number | null; costUsd?: number | null; startedAt?: string; finishedAt?: string };
+export type Workflow = Row & { projectId: string; name: string; description?: string;
+  /** When set, Execute asks this question and the answer becomes this run's goal. */
+  askInput?: string; nodes: FlowNode[]; edges: FlowEdge[]; active?: boolean; schedule?: string | null };
+export type NodeRun = { status: "running" | "waiting" | "ok" | "failed" | "skipped"; output?: string; tokens?: number | null; costUsd?: number | null; startedAt?: string; finishedAt?: string };
 export type Run = Row & {
   projectId: string; workflowId: string; workflowName: string; trigger: "manual" | "schedule"; status: "running" | "ok" | "failed" | "stopped";
   startedAt: string; finishedAt?: string; nodes: Record<string, NodeRun>; tokens?: number; costUsd?: number;
+  /** The answer to the workflow's askInput question. */
+  input?: string;
 };
 export type Settings = { rules: string[]; claude?: { granted: boolean; grantedAt?: string; scopes: string[] } };
 export type ClaudeStatus = { installed: boolean; version?: string; loggedIn: boolean; authMethod?: string; plan?: string; expiresAt?: string; granted: boolean; grantedAt?: string };

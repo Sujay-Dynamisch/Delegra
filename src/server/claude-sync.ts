@@ -167,8 +167,10 @@ export function projectUsage(projectPath: string) {
   const root = path.resolve(projectPath).toLowerCase() + path.sep;
   const inside = edits.filter((x) => path.resolve(x.file).toLowerCase().startsWith(root));
   const recent = [...new Map(inside.sort((a, b) => String(b.at).localeCompare(String(a.at))).map((x) => [x.file, x] as const)).values()].slice(0, 8);
-  const live = sessions.filter((s) => Date.now() - new Date(s.updatedAt).getTime() < 2 * 60 * 1000).length;
-  return { tokens, turns, byModel, days, edits: recent, sessions: sessions.slice(0, 6), sessionCount: sessions.length, live };
+  // "Live" = Claude Code wrote to the session in the last 2 minutes.
+  const liveIds = sessions.filter((s) => Date.now() - new Date(s.updatedAt).getTime() < 2 * 60 * 1000).map((s) => s.id);
+  const live = liveIds.length;
+  return { tokens, turns, byModel, days, edits: recent, sessions: sessions.slice(0, 6), sessionCount: sessions.length, live, liveIds };
 }
 
 export function readSession(projectPath: string, id: string): SessionMessage[] | null {

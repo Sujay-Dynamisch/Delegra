@@ -62,17 +62,30 @@ export function stop(id: string) {
   p.stop();
 }
 
+/* ---------- approvals: a run waits at an approval node until you answer ---------- */
+const ga = globalThis as unknown as { __loApprove?: Map<string, (a: { ok: boolean; note?: string }) => void> };
+const approvals = (ga.__loApprove ??= new Map());
+export function answer(runId: string, ok: boolean, note?: string) {
+  const resolve = approvals.get(runId);
+  if (!resolve) throw new HttpError(404, "This run isn't waiting for approval");
+  approvals.delete(runId);
+  resolve({ ok, note: note?.trim().slice(0, 4000) || undefined });
+}
+
 /* ---------- workflows: n8n-style graph, run in topological order ---------- */
-export function runWorkflow(id: string, trigger: Run["trigger"] = "manual") {
+export function runWorkflow(id: string, trigger: Run["trigger"] = "manual", input?: string) {
   const wf = store.get<Workflow>("workflows", id);
   if (!wf) throw new HttpError(404, "Workflow not found");
   const project = store.get<Project>("projects", wf.projectId);
   if (!project) throw new HttpError(400, "The workflow's project no longer exists");
   if (!wf.nodes.some((n) => n.kind === "trigger")) throw new HttpError(400, "Add a trigger node first");
-  const runId = store.insert<Omit<Run, "id">>("runs", { projectId: wf.projectId, workflowId: id, workflowName: wf.name, trigger, status: "running", startedAt: now(), nodes: {}, tokens: 0, costUsd: 0 });
+  input = input?.trim().slice(0, 8000) || undefined;
+  if (wf.askInput && !input) throw new HttpError(400, wf.askInput);
+  const goal = [wf.description || wf.name, input && `This run: ${input}`].filter(Boolean).join("\n\n");
+  const runId = store.insert<Omit<Run, "id">>("runs", { projectId: wf.projectId, workflowId: id, workflowName: wf.name, trigger, status: "running", startedAt: now(), nodes: {}, tokens: 0, costUsd: 0, input });
   const nodes: Run["nodes"] = {};
   let stopped = false, current: { stop(): void } | null = null;
-  live.set(runId, { stop() { stopped = true; current?.stop(); } });
+  live.set(runId, { stop() { stopped = true; current?.stop(); approvals.get(runId)?.({ ok: false }); approvals.delete(runId); } });
   const save = (p: Partial<Run>) => store.update<Run>("runs", runId, { nodes: { ...nodes }, ...p });
   const incoming = (n: FlowNode) => wf.edges.filter((e) => e.target === n.id);
   const outputs: Record<string, string> = {};
@@ -97,8 +110,18 @@ export function runWorkflow(id: string, trigger: Run["trigger"] = "manual") {
       const input = parents.map((e) => outputs[e.source]).filter(Boolean).join("\n\n---\n\n");
       nodes[ready.id] = { status: "running", startedAt: now() };
       save({});
-      if (ready.kind === "trigger") { outputs[ready.id] = wf.description || wf.name; nodes[ready.id] = { status: "ok", output: "Started", finishedAt: now() }; save({}); continue; }
+      if (ready.kind === "trigger") { outputs[ready.id] = goal; nodes[ready.id] = { status: "ok", output: "Started", finishedAt: now() }; save({}); continue; }
       if (ready.kind === "merge") { outputs[ready.id] = input; nodes[ready.id] = { status: "ok", output: input.slice(0, 4000), finishedAt: now() }; save({}); continue; }
+      if (ready.kind === "approval") {
+        // Show what is being approved, then wait for the person.
+        nodes[ready.id] = { status: "waiting", output: input.slice(0, 20000), startedAt: nodes[ready.id].startedAt };
+        save({});
+        const a = await new Promise<{ ok: boolean; note?: string }>((resolve) => approvals.set(runId, resolve));
+        if (!a.ok || stopped) { nodes[ready.id] = { ...nodes[ready.id], status: "failed", output: a.note ? `Rejected: ${a.note}` : "Rejected", finishedAt: now() }; stopped = true; break; }
+        outputs[ready.id] = input + (a.note ? `\n\n---\n\nInstructions from the person who approved this step (follow them):\n${a.note}` : "");
+        nodes[ready.id] = { ...nodes[ready.id], status: "ok", output: a.note ? `Approved: ${a.note}` : "Approved", finishedAt: now() };
+        save({}); continue;
+      }
       if (ready.kind === "condition") {
         const hit = input.toLowerCase().includes(String(ready.data.contains || "").toLowerCase());
         outputs[ready.id] = input;
@@ -106,11 +129,13 @@ export function runWorkflow(id: string, trigger: Run["trigger"] = "manual") {
         save({}); continue;
       }
       const agent = getAgent(ready.data.agentId);
-      const prompt = `${brief(agent)}\n\nWorkflow goal: ${wf.description || wf.name}\n` +
+      const prompt = `${brief(agent)}\n\nWorkflow goal: ${goal}\n` +
         (input ? `\nInput from the previous step:\n${input.slice(0, 6000)}\n` : "") +
         `\nYour step:\n${ready.data.instruction || ready.data.label}\n\nReply in the shortest complete form. If you lack information, say UNKNOWN and what you need.`;
       try {
-        const proc = runAgent({ prompt, cwd: project.path, model: ready.data.model || agent?.model || "sonnet", effort: ready.data.effort || agent?.effort, permissionMode: ready.data.write ? project.permissionMode : "plan" });
+        // Read-only steps with allowed tools run in "default" mode: edits are refused (no one can approve them), the listed tools are allowed.
+        const proc = runAgent({ prompt, cwd: project.path, model: ready.data.model || agent?.model || "sonnet", effort: ready.data.effort || agent?.effort,
+          permissionMode: ready.data.write ? project.permissionMode : ready.data.tools?.length ? "default" : "plan", tools: ready.data.tools });
         current = proc;
         const r = await proc.done;
         tokens += r.tokens || 0; cost += r.costUsd || 0;

@@ -11,7 +11,8 @@ import { ago, dur, fmtTokens, useJson, useList } from "@/lib/client";
 import type { Run, SessionSummary, Task, Workflow as Wf } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-type Usage = { tokens: number; turns: Record<string, number>; edits: { file: string; at: string; session: string }[]; sessions: SessionSummary[]; sessionCount: number; live: number };
+type Usage = { tokens: number; turns: Record<string, number>; edits: { file: string; at: string; session: string }[]; sessions: SessionSummary[]; sessionCount: number; live: number; liveIds: string[] };
+const LiveDot = () => <span className="inline-flex items-center gap-1 font-medium text-emerald-600"><span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />Live</span>;
 const ORIGIN = { delegra: "Delegra", vscode: "VS Code", jetbrains: "JetBrains", cli: "Terminal" } as const;
 
 export default function Overview() {
@@ -66,7 +67,9 @@ export default function Overview() {
       </form>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Stat icon={Layers} value={n("working") + (cc?.live || 0)} label="Active agents" sub={`${tasks.length} tasks · ${cc?.sessionCount ?? 0} Claude Code chats`} />
+        <Stat icon={Layers} value={n("working") + (cc?.live || 0)} label="Active agents"
+          sub={[n("working") && `${n("working")} Delegra task${n("working") === 1 ? "" : "s"} running`, cc?.live && `${cc.live} live in Claude Code`].filter(Boolean).join(" · ") || "Nothing running"}
+          href={n("working") ? "/tasks" : cc?.liveIds.length === 1 ? `/chat?session=${cc.liveIds[0]}` : cc?.live ? "/chat" : undefined} />
         <Stat icon={CheckCircle2} value={n("done")} label="Tasks completed" sub={n("blocked") ? `${n("blocked")} blocked` : "Nothing blocked"} />
         <Stat icon={Coins} value={fmtTokens(tokens)} label="Tokens used" sub="Claude Code + Delegra, incl. cached" />
         <Stat icon={Clock} value={dur(avg)} label="Avg. task time" sub={timed.length ? `${timed.length} finished tasks` : "No finished tasks"} />
@@ -118,7 +121,7 @@ export default function Overview() {
                 {cc.sessions.map((x) => (
                   <Link key={x.id} href={`/chat?session=${x.id}`} className="flex items-center gap-3 border-t py-2 text-sm first-of-type:border-0 hover:underline">
                     <MessageSquare className="size-4 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate">{x.title}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground">{ORIGIN[x.origin]} · {ago(x.updatedAt)}</span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-xs text-muted-foreground">{cc.liveIds.includes(x.id) && <LiveDot />}{ORIGIN[x.origin]} · {ago(x.updatedAt)}</span>
                   </Link>
                 ))}
               </div>

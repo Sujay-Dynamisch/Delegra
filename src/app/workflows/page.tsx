@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/components/app/project-context";
 import { Empty, PageHeader, StatusPill } from "@/components/app/bits";
-import { ago, api, db, useList } from "@/lib/client";
+import { ago, api, db, dur, fmtTokens, useList } from "@/lib/client";
 import type { Agent, Run, Workflow as Wf } from "@/lib/types";
 
 function starter(projectId: string, agents: Agent[]): Omit<Wf, "id"> {
@@ -61,10 +61,11 @@ function WorkflowsPage() {
               </Link>
               <div className="grid justify-items-end gap-1 text-xs text-muted-foreground">
                 {last ? <StatusPill status={last.status} /> : <span className="rounded-full bg-muted px-2.5 py-0.5">Never run</span>}
+                {last?.finishedAt && <span>Last run {dur(new Date(last.finishedAt).getTime() - new Date(last.startedAt).getTime())} · {fmtTokens(last.tokens)} tokens</span>}
                 Updated {ago(w.updatedAt)}
               </div>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => api("/api/run", { body: { action: "workflow", id: w.id } }).then(() => toast("Workflow started"), (e) => toast.error(e.message))}><Play />Run</Button>
+                <Button size="sm" variant="outline" onClick={() => w.askInput ? router.push(`/workflows/${w.id}?run=1`) : api("/api/run", { body: { action: "workflow", id: w.id } }).then(() => toast("Workflow started"), (e) => toast.error(e.message))}><Play />Run</Button>
                 <Button size="sm" nativeButton={false} render={<Link href={`/workflows/${w.id}`} />}>Open</Button>
                 <Button size="icon" variant="ghost" aria-label={`Delete ${w.name}`} onClick={() => { if (confirm(`Delete ${w.name}?`)) db.remove("workflows", w.id); }}><Trash2 /></Button>
               </div>
